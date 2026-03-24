@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './users/user.entity';
 import { Item } from './items/item.entity';
 import { Chat } from './chats/chat.entity'; 
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { Chat } from './chats/chat.entity';
       }),
       inject: [ConfigService],
     }),
+    CloudinaryModule,
   ],
 })
 export class AppModule {}
