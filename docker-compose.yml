@@ -21,6 +21,19 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sharecampus_api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - db
+      - redis
 
 volumes:
   postgres_data:
