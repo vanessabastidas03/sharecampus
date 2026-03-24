@@ -55,4 +55,6 @@ pids
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
-src/config/firebase-service-account.json
+mobile/google-services.json
+mobile/GoogleService-Info.plist
+backend/src/config/firebase-service-account.json
