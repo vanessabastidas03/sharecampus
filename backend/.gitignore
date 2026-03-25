@@ -58,3 +58,4 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 mobile/google-services.json
 mobile/GoogleService-Info.plist
 backend/src/config/firebase-service-account.json
+src/config/firebase-service-account.json
