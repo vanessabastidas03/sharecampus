@@ -18,6 +18,7 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
+        url: configService.get<string>('DATABASE_URL'),
         host: configService.get<string>('POSTGRES_HOST'),
         port: configService.get<number>('POSTGRES_PORT'),
         username: configService.get<string>('POSTGRES_USER'),
@@ -26,8 +27,11 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
         entities: [User, Item, Chat],
         synchronize: false,   // NUNCA true en producción
         migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
-        migrationsRun: false, // Las migraciones se corren manualmente
+        migrationsRun: true, // Las migraciones se corren manualmente
         logging: configService.get('NODE_ENV') === 'development',
+        ssl: configService.get('NODE_ENV') === 'production' 
+          ? { rejectUnauthorized: false } 
+          : false,
       }),
       inject: [ConfigService],
     }),
