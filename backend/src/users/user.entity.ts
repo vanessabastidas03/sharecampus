@@ -17,6 +17,12 @@ export class User {
   @Column({ default: false })
   is_verified: boolean;
 
+  @Column({ type: 'text', nullable: true })
+  verification_token: string | null;
+
+  @Column({ nullable: true })
+  photo_url: string;
+
   @Column({ nullable: true })
   faculty: string;
 
