@@ -19,17 +19,6 @@ export class ItemsService {
     });
   }
 
-  private sanitizeUser(user: any) {
-    if (!user) return null;
-    const { password_hash, verification_token, reset_password_token, reset_password_expires, ...safe } = user;
-    return safe;
-  }
-
-  private sanitizeItem(item: any) {
-    if (!item) return null;
-    return { ...item, user: this.sanitizeUser(item.user) };
-  }
-
   async create(userId: string, dto: CreateItemDto): Promise<Item> {
     const duplicate = await this.itemsRepository
       .createQueryBuilder('item')
@@ -44,7 +33,11 @@ export class ItemsService {
       );
     }
 
-    const item = this.itemsRepository.create({ ...dto, user_id: userId, photos: [] });
+    const item = this.itemsRepository.create({
+      ...dto,
+      user_id: userId,
+      photos: [],
+    });
     return this.itemsRepository.save(item);
   }
 
@@ -57,74 +50,96 @@ export class ItemsService {
     user_campus?: string;
   }) {
     const query = this.itemsRepository.createQueryBuilder('item')
-      .leftJoinAndSelect('item.user', 'user')
+      .leftJoin('item.user', 'user')
+      .addSelect(['user.id', 'user.full_name', 'user.photo_url', 'user.rating', 'user.faculty', 'user.campus', 'user.is_verified'])
       .where('item.status = :status', { status: 'Disponible' });
 
-    if (filters?.search) query.andWhere('item.title ILIKE :search', { search: `%${filters.search}%` });
-    if (filters?.category) query.andWhere('item.category = :category', { category: filters.category });
-    if (filters?.campus) query.andWhere('item.campus = :campus', { campus: filters.campus });
-    if (filters?.offer_type) query.andWhere('item.offer_type = :offer_type', { offer_type: filters.offer_type });
+    if (filters?.search) {
+      query.andWhere('item.title ILIKE :search', { search: `%${filters.search}%` });
+    }
+    if (filters?.category) {
+      query.andWhere('item.category = :category', { category: filters.category });
+    }
+    if (filters?.campus) {
+      query.andWhere('item.campus = :campus', { campus: filters.campus });
+    }
+    if (filters?.offer_type) {
+      query.andWhere('item.offer_type = :offer_type', { offer_type: filters.offer_type });
+    }
 
-    if (filters?.order_by === 'rating') query.orderBy('user.rating', 'DESC');
-    else query.orderBy('item.created_at', 'DESC');
+    if (filters?.order_by === 'rating') {
+      query.orderBy('user.rating', 'DESC');
+    } else {
+      query.orderBy('item.created_at', 'DESC');
+    }
 
     const items = await query.getMany();
-    const sanitized = items.map(i => this.sanitizeItem(i));
 
     if (filters?.user_campus) {
-      const sameCampus = sanitized.filter(i => i.campus === filters.user_campus);
-      const otherCampus = sanitized.filter(i => i.campus !== filters.user_campus);
+      const sameCampus = items.filter(i => i.campus === filters.user_campus);
+      const otherCampus = items.filter(i => i.campus !== filters.user_campus);
       return [...sameCampus, ...otherCampus];
     }
 
-    return sanitized;
+    return items;
   }
 
   async getRecommended(userId: string, campus?: string) {
     const query = this.itemsRepository.createQueryBuilder('item')
-      .leftJoinAndSelect('item.user', 'user')
+      .leftJoin('item.user', 'user')
+      .addSelect(['user.id', 'user.full_name', 'user.photo_url', 'user.rating', 'user.faculty', 'user.is_verified'])
       .where('item.status = :status', { status: 'Disponible' })
       .andWhere('item.user_id != :userId', { userId })
       .orderBy('item.created_at', 'DESC')
       .take(10);
 
-    if (campus) query.andWhere('item.campus = :campus', { campus });
+    if (campus) {
+      query.andWhere('item.campus = :campus', { campus });
+    }
 
-    const items = await query.getMany();
-    return items.map(i => this.sanitizeItem(i));
+    return query.getMany();
   }
 
-  async findOne(id: string): Promise<any> {
-    const item = await this.itemsRepository.findOne({ where: { id }, relations: ['user'] });
+  async findOne(id: string): Promise<Item> {
+    const item = await this.itemsRepository.createQueryBuilder('item')
+      .leftJoin('item.user', 'user')
+      .addSelect(['user.id', 'user.full_name', 'user.photo_url', 'user.rating', 'user.faculty', 'user.is_verified'])
+      .where('item.id = :id', { id })
+      .getOne();
     if (!item) throw new NotFoundException('Ítem no encontrado');
-    return this.sanitizeItem(item);
+    return item;
   }
 
   async findByUser(userId: string): Promise<Item[]> {
-    return this.itemsRepository.find({ where: { user_id: userId }, order: { created_at: 'DESC' } });
+    return this.itemsRepository.find({
+      where: { user_id: userId },
+      order: { created_at: 'DESC' },
+    });
   }
 
-  async update(userId: string, id: string, dto: UpdateItemDto): Promise<any> {
-    const item = await this.itemsRepository.findOne({ where: { id } });
-    if (!item) throw new NotFoundException('Ítem no encontrado');
+  async update(userId: string, id: string, dto: UpdateItemDto): Promise<Item> {
+    const item = await this.findOne(id);
     if (item.user_id !== userId) throw new ForbiddenException('No puedes editar este ítem');
-    if (item.status === ItemStatus.ENTREGADO) throw new ForbiddenException('No puedes editar un ítem ya entregado');
+    if (item.status === ItemStatus.ENTREGADO) {
+      throw new ForbiddenException('No puedes editar un ítem ya entregado');
+    }
     await this.itemsRepository.update(id, dto);
     return this.findOne(id);
   }
 
   async remove(userId: string, id: string): Promise<void> {
-    const item = await this.itemsRepository.findOne({ where: { id } });
-    if (!item) throw new NotFoundException('Ítem no encontrado');
+    const item = await this.findOne(id);
     if (item.user_id !== userId) throw new ForbiddenException('No puedes eliminar este ítem');
     await this.itemsRepository.delete(id);
   }
 
-  async uploadPhotos(userId: string, id: string, files: Express.Multer.File[]): Promise<any> {
-    const item = await this.itemsRepository.findOne({ where: { id } });
-    if (!item) throw new NotFoundException('Ítem no encontrado');
+  async uploadPhotos(userId: string, id: string, files: Express.Multer.File[]): Promise<Item> {
+    const item = await this.findOne(id);
     if (item.user_id !== userId) throw new ForbiddenException('No puedes modificar este ítem');
-    if (item.photos.length + files.length > 5) throw new BadRequestException('No puedes subir más de 5 fotos por ítem');
+
+    if (item.photos.length + files.length > 5) {
+      throw new BadRequestException('No puedes subir más de 5 fotos por ítem');
+    }
 
     const allowed = ['image/jpeg', 'image/png', 'image/webp'];
     const maxSize = 5 * 1024 * 1024;
@@ -149,9 +164,11 @@ export class ItemsService {
   }
 
   async reportItem(id: string): Promise<void> {
-    const item = await this.itemsRepository.findOne({ where: { id } });
-    if (!item) throw new NotFoundException('Ítem no encontrado');
+    const item = await this.findOne(id);
     const newCount = item.report_count + 1;
-    await this.itemsRepository.update(id, { report_count: newCount, is_reported: newCount >= 1 });
+    await this.itemsRepository.update(id, {
+      report_count: newCount,
+      is_reported: newCount >= 1,
+    });
   }
 }
