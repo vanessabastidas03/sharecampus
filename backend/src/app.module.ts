@@ -5,8 +5,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
-import { User } from './users/user.entity';
 import { ProfileModule } from './profile/profile.module';
+import { ItemsModule } from './items/items.module';
+import { User } from './users/user.entity';
+import { Item } from './items/item.entity';
 
 @Module({
   imports: [
@@ -14,7 +16,7 @@ import { ProfileModule } from './profile/profile.module';
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
-      entities: [User],
+      entities: [User, Item],
       synchronize: true,
       ssl: process.env.NODE_ENV === 'production'
         ? { rejectUnauthorized: false }
@@ -23,6 +25,7 @@ import { ProfileModule } from './profile/profile.module';
     UsersModule,
     AuthModule,
     ProfileModule,
+    ItemsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
