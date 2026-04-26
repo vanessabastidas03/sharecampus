@@ -9,9 +9,13 @@ import { ProfileModule } from './profile/profile.module';
 import { ItemsModule } from './items/items.module';
 import { ChatsModule } from './chats/chats.module';
 import { FirebaseModule } from './firebase/firebase.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { WishlistModule } from './wishlist/wishlist.module';
 import { User } from './users/user.entity';
 import { Item } from './items/item.entity';
 import { Chat } from './chats/chat.entity';
+import { DeviceToken } from './notifications/device-token.entity';
+import { Wishlist } from './wishlist/wishlist.entity';
 
 @Module({
   imports: [
@@ -19,7 +23,7 @@ import { Chat } from './chats/chat.entity';
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
-      entities: [User, Item, Chat],
+      entities: [User, Item, Chat, DeviceToken, Wishlist],
       synchronize: true,
       ssl: process.env.NODE_ENV === 'production'
         ? { rejectUnauthorized: false }
@@ -31,6 +35,8 @@ import { Chat } from './chats/chat.entity';
     ProfileModule,
     ItemsModule,
     ChatsModule,
+    NotificationsModule,
+    WishlistModule,
   ],
   controllers: [AppController],
   providers: [AppService],
