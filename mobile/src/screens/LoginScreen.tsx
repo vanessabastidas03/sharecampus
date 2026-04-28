@@ -46,6 +46,9 @@ export default function LoginScreen({ navigation }: Props) {
   const [error, setError] = useState('');
   const [emailFocus, setEmailFocus] = useState(false);
   const [passFocus, setPassFocus] = useState(false);
+  const [showResend, setShowResend] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendStatus, setResendStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const logoScale = useRef(new Animated.Value(0)).current;
   const cardY = useRef(new Animated.Value(50)).current;
@@ -93,7 +96,9 @@ export default function LoginScreen({ navigation }: Props) {
       const raw = err.response?.data?.message ?? err.response?.data?.error ?? err.message ?? '';
       const msg: string = Array.isArray(raw) ? (raw as string[]).join('. ') : String(raw);
       if (msg.includes('verificar') || msg.includes('verify')) {
-        setError('Debes verificar tu correo antes de iniciar sesion.');
+        setError('Tu cuenta aun no esta verificada. Revisa tu correo o reenviale el enlace.');
+        setShowResend(true);
+        setResendStatus('idle');
       } else if (err.response?.status === 401) {
         setError('Correo o contrasena incorrectos.');
       } else if (err.response?.status === 400) {
@@ -106,6 +111,20 @@ export default function LoginScreen({ navigation }: Props) {
       shake();
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleResend() {
+    if (!email.trim()) return;
+    setResendLoading(true);
+    setResendStatus('idle');
+    try {
+      await api.post('/auth/resend-verification', { email: email.trim().toLowerCase() });
+      setResendStatus('success');
+    } catch {
+      setResendStatus('error');
+    } finally {
+      setResendLoading(false);
     }
   }
 
@@ -195,6 +214,42 @@ export default function LoginScreen({ navigation }: Props) {
               <View style={styles.errorDot} />
               <Text style={styles.errorText}>{error}</Text>
             </Animated.View>
+          )}
+
+          {/* Bloque de reenvio de verificacion */}
+          {showResend && (
+            <View style={styles.resendBox}>
+              <Text style={styles.resendTitle}>Cuenta sin verificar</Text>
+              <Text style={styles.resendHint}>
+                Se enviara un nuevo enlace a{' '}
+                <Text style={styles.resendEmail}>{email.trim().toLowerCase()}</Text>
+              </Text>
+              {resendStatus === 'success' && (
+                <View style={styles.resendSuccess}>
+                  <Text style={styles.resendSuccessText}>
+                    Enlace enviado. Revisa tu bandeja (y spam).
+                  </Text>
+                </View>
+              )}
+              {resendStatus === 'error' && (
+                <View style={styles.resendError}>
+                  <Text style={styles.resendErrorText}>
+                    Error al enviar. Intenta de nuevo.
+                  </Text>
+                </View>
+              )}
+              <Pressable
+                style={[styles.resendBtn, resendLoading && styles.btnLoading]}
+                onPress={handleResend}
+                disabled={resendLoading || !email.trim()}
+              >
+                {resendLoading ? (
+                  <ActivityIndicator color={COLORS.primary} size="small" />
+                ) : (
+                  <Text style={styles.resendBtnText}>Reenviar enlace de verificacion</Text>
+                )}
+              </Pressable>
+            </View>
           )}
 
           {/* Boton con press scale */}
@@ -340,4 +395,36 @@ const styles = StyleSheet.create({
   },
   registerText: { fontSize: 14, color: COLORS.textMuted },
   registerLink: { fontSize: 14, fontWeight: '700', color: COLORS.primary },
+  resendBox: {
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+  },
+  resendTitle: {
+    fontSize: 13, fontWeight: '800', color: COLORS.primary, marginBottom: 4,
+  },
+  resendHint: {
+    fontSize: 12, color: COLORS.textMuted, marginBottom: 10, lineHeight: 17,
+  },
+  resendEmail: { fontWeight: '700', color: COLORS.primary },
+  resendBtn: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+  },
+  resendBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.primary },
+  resendSuccess: {
+    backgroundColor: '#D1FAE5', borderRadius: 8, padding: 8, marginBottom: 8,
+  },
+  resendSuccessText: { fontSize: 12, color: '#065F46', fontWeight: '600' },
+  resendError: {
+    backgroundColor: '#FFE4E6', borderRadius: 8, padding: 8, marginBottom: 8,
+  },
+  resendErrorText: { fontSize: 12, color: '#BE123C', fontWeight: '600' },
 });

@@ -70,11 +70,59 @@ export class AuthController {
     return `<!DOCTYPE html><html lang="es">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ShareCampus – Error de verificación</title>
-<style>*{box-sizing:border-box;margin:0;padding:0}body{min-height:100vh;background:linear-gradient(135deg,#7C3AED,#5B21B6);display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,sans-serif}.card{background:#fff;border-radius:24px;padding:40px 32px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2);border-top:5px solid #F43F5E}.icon{width:72px;height:72px;border-radius:50%;background:#FFE4E6;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;font-size:32px}h1{font-size:22px;font-weight:800;color:#1E1B4B;margin-bottom:10px}p{font-size:14px;color:#6B7280;line-height:1.6}</style></head>
-<body><div class="card"><div class="icon">✕</div>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;background:linear-gradient(135deg,#7C3AED,#5B21B6);display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,sans-serif}
+.card{background:#fff;border-radius:24px;padding:40px 32px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2);border-top:5px solid #F43F5E}
+.icon{width:72px;height:72px;border-radius:50%;background:#FFE4E6;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;font-size:32px}
+h1{font-size:22px;font-weight:800;color:#1E1B4B;margin-bottom:10px}
+p{font-size:14px;color:#6B7280;line-height:1.6;margin-bottom:20px}
+.divider{border:none;border-top:1px solid #EDE9FE;margin:20px 0}
+label{display:block;font-size:13px;font-weight:700;color:#4B5563;margin-bottom:6px;text-align:left}
+input{width:100%;padding:13px 16px;border:2px solid #EDE9FE;border-radius:12px;font-size:15px;color:#1E1B4B;background:#F7F5FF;outline:none;margin-bottom:14px}
+input:focus{border-color:#7C3AED}
+button{width:100%;padding:14px;background:#7C3AED;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;margin-top:4px}
+button:disabled{opacity:.6;cursor:not-allowed}
+.success-msg{background:#D1FAE5;border-radius:10px;padding:12px;font-size:13px;color:#065F46;font-weight:600;margin-top:12px}
+.error-msg{background:#FFE4E6;border-radius:10px;padding:12px;font-size:13px;color:#BE123C;font-weight:600;margin-top:12px}
+</style></head>
+<body><div class="card">
+<div class="icon">✕</div>
 <h1>Enlace inválido</h1>
-<p>${errorMsg ?? 'Este enlace ya fue usado o expiró. Solicita un nuevo enlace desde la app.'}</p>
-</div></body></html>`;
+<p>${errorMsg ?? 'Este enlace ya fue usado o expiró.'}</p>
+<hr class="divider">
+<p style="font-weight:700;color:#1E1B4B;margin-bottom:16px">¿Deseas recibir un nuevo enlace?</p>
+<label for="resend-email">Tu correo institucional</label>
+<input type="email" id="resend-email" placeholder="correo@universidad.edu.co" autocomplete="email">
+<button id="resend-btn" onclick="resend()">Reenviar enlace de verificación</button>
+<div id="resend-result"></div>
+</div>
+<script>
+async function resend(){
+  const email=document.getElementById('resend-email').value.trim();
+  const btn=document.getElementById('resend-btn');
+  const result=document.getElementById('resend-result');
+  if(!email){result.innerHTML='<div class="error-msg">Ingresa tu correo.</div>';return;}
+  btn.disabled=true;btn.textContent='Enviando...';result.innerHTML='';
+  try{
+    const r=await fetch('/auth/resend-verification',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    const d=await r.json();
+    result.innerHTML='<div class="success-msg">'+(d.message||'Revisa tu bandeja de entrada.')+'</div>';
+  }catch(e){
+    result.innerHTML='<div class="error-msg">Error de conexión. Intenta desde la app.</div>';
+  }finally{btn.disabled=false;btn.textContent='Reenviar enlace de verificación';}
+}
+</script>
+</body></html>`;
+  }
+
+  // ─── Reenviar verificación ─────────────────────────────────────────────────
+
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reenviar email de verificación' })
+  resendVerification(@Body() body: { email: string }) {
+    return this.authService.resendVerification(body.email);
   }
 
   // ─── Recuperar contraseña: solicitar enlace ────────────────────────────────

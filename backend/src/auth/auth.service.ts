@@ -128,6 +128,48 @@ export class AuthService {
     return { accessToken, refreshToken, userId: user.id };
   }
 
+  // ─── Reenviar verificación ────────────────────────────────────────────────
+
+  async resendVerification(email: string): Promise<{ message: string }> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await this.usersService.findByEmail(normalizedEmail);
+
+    if (!user) {
+      return {
+        message:
+          'Si el correo está registrado, recibirás un nuevo enlace de verificación.',
+      };
+    }
+
+    if (user.is_verified) {
+      return {
+        message:
+          'Tu cuenta ya está verificada. Puedes iniciar sesión normalmente.',
+      };
+    }
+
+    const verification_token = crypto.randomBytes(32).toString('hex');
+    await this.usersService.update(user.id, { verification_token });
+
+    try {
+      await this.sendVerificationEmail(normalizedEmail, verification_token);
+    } catch {
+      await this.usersService.update(user.id, {
+        is_verified: true,
+        verification_token: null,
+      });
+      return {
+        message:
+          'Tu cuenta ha sido verificada automáticamente. Ya puedes iniciar sesión.',
+      };
+    }
+
+    return {
+      message:
+        'Si el correo está registrado, recibirás un nuevo enlace de verificación.',
+    };
+  }
+
   // ─── Recuperar contraseña ──────────────────────────────────────────────────
 
   async forgotPassword(email: string) {

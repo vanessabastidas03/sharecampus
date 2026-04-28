@@ -57,6 +57,9 @@ export default function RegisterScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendStatus, setResendStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [emailFocus, setEmailFocus] = useState(false);
   const [passFocus, setPassFocus] = useState(false);
   const [confirmFocus, setConfirmFocus] = useState(false);
@@ -141,7 +144,9 @@ export default function RegisterScreen({ navigation }: Props) {
       if (!err.response) {
         setError('Sin conexion al servidor. Verifica tu internet.');
       } else if (msg.includes('ya est') || msg.toLowerCase().includes('already')) {
-        setError('Este correo ya esta registrado. Intenta iniciar sesion.');
+        setError('Este correo ya tiene una cuenta registrada.');
+        setAlreadyRegistered(true);
+        setResendStatus('idle');
       } else if (msg.includes('institucional')) {
         setError('Solo se permiten correos institucionales (.edu, .edu.co).');
       } else if (msg.toLowerCase().includes('must be an email') || msg.includes('correo electrónico válido')) {
@@ -152,6 +157,19 @@ export default function RegisterScreen({ navigation }: Props) {
       shake();
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleResendFromRegister() {
+    setResendLoading(true);
+    setResendStatus('idle');
+    try {
+      await api.post('/auth/resend-verification', { email: email.trim().toLowerCase() });
+      setResendStatus('success');
+    } catch {
+      setResendStatus('error');
+    } finally {
+      setResendLoading(false);
     }
   }
 
@@ -314,13 +332,53 @@ export default function RegisterScreen({ navigation }: Props) {
           </View>
           {mismatch && <Text style={styles.fieldError}>Las contrasenias no coinciden</Text>}
 
-          {error !== '' && (
+          {error !== '' && !alreadyRegistered && (
             <Animated.View
               style={[styles.errorBox, { transform: [{ translateX: errorX }] }]}
             >
               <View style={styles.errorDot} />
               <Text style={styles.errorText}>{error}</Text>
             </Animated.View>
+          )}
+
+          {alreadyRegistered && (
+            <View style={styles.alreadyBox}>
+              <Text style={styles.alreadyTitle}>Este correo ya esta registrado</Text>
+              <Text style={styles.alreadyHint}>
+                Si aun no verificaste tu cuenta, puedes reenviar el enlace de activacion.
+              </Text>
+              {resendStatus === 'success' && (
+                <View style={styles.resendSuccess}>
+                  <Text style={styles.resendSuccessText}>
+                    Enlace enviado. Revisa tu bandeja (y spam).
+                  </Text>
+                </View>
+              )}
+              {resendStatus === 'error' && (
+                <View style={styles.resendError}>
+                  <Text style={styles.resendErrorText}>Error al enviar. Intenta de nuevo.</Text>
+                </View>
+              )}
+              <View style={styles.alreadyActions}>
+                <Pressable
+                  style={styles.alreadyBtnSecondary}
+                  onPress={() => navigation.navigate('Login')}
+                >
+                  <Text style={styles.alreadyBtnSecondaryText}>Ir a login</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.alreadyBtnPrimary, resendLoading && styles.btnLoading]}
+                  onPress={handleResendFromRegister}
+                  disabled={resendLoading}
+                >
+                  {resendLoading ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.alreadyBtnPrimaryText}>Reenviar verificacion</Text>
+                  )}
+                </Pressable>
+              </View>
+            </View>
           )}
 
           <Animated.View style={{ transform: [{ scale: btnScale }] }}>
@@ -476,6 +534,46 @@ const styles = StyleSheet.create({
   },
   loginText: { fontSize: 14, color: COLORS.textMuted },
   loginLink: { fontSize: 14, fontWeight: '700', color: COLORS.primary },
+  alreadyBox: {
+    backgroundColor: COLORS.accentLight,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: COLORS.accent,
+  },
+  alreadyTitle: {
+    fontSize: 13, fontWeight: '800', color: COLORS.accentText, marginBottom: 4,
+  },
+  alreadyHint: {
+    fontSize: 12, color: COLORS.textMuted, marginBottom: 10, lineHeight: 17,
+  },
+  alreadyActions: {
+    flexDirection: 'row', gap: 8,
+  },
+  alreadyBtnSecondary: {
+    flex: 1, paddingVertical: 10, borderRadius: 10,
+    borderWidth: 1.5, borderColor: COLORS.accent,
+    alignItems: 'center',
+  },
+  alreadyBtnSecondaryText: {
+    fontSize: 13, fontWeight: '700', color: COLORS.accentText,
+  },
+  alreadyBtnPrimary: {
+    flex: 1, paddingVertical: 10, borderRadius: 10,
+    backgroundColor: COLORS.primary, alignItems: 'center',
+  },
+  alreadyBtnPrimaryText: {
+    fontSize: 13, fontWeight: '700', color: '#fff',
+  },
+  resendSuccess: {
+    backgroundColor: '#D1FAE5', borderRadius: 8, padding: 8, marginBottom: 8,
+  },
+  resendSuccessText: { fontSize: 12, color: '#065F46', fontWeight: '600' },
+  resendError: {
+    backgroundColor: '#FFE4E6', borderRadius: 8, padding: 8, marginBottom: 8,
+  },
+  resendErrorText: { fontSize: 12, color: '#BE123C', fontWeight: '600' },
   /* Success screen */
   successCard: {
     backgroundColor: COLORS.card,
