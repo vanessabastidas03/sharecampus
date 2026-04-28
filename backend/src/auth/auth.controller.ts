@@ -58,14 +58,45 @@ export class AuthController {
   private verifyHtml(success: boolean, errorMsg?: string): string {
     if (success) {
       return `<!DOCTYPE html><html lang="es">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ShareCampus – Cuenta verificada</title>
-<style>*{box-sizing:border-box;margin:0;padding:0}body{min-height:100vh;background:linear-gradient(135deg,#7C3AED,#5B21B6);display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,sans-serif}.card{background:#fff;border-radius:24px;padding:40px 32px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2)}.icon{width:72px;height:72px;border-radius:50%;background:#D1FAE5;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;font-size:32px}h1{font-size:22px;font-weight:800;color:#1E1B4B;margin-bottom:10px}p{font-size:14px;color:#6B7280;line-height:1.6;margin-bottom:28px}.btn{display:inline-block;background:#7C3AED;color:#fff;padding:14px 32px;border-radius:12px;text-decoration:none;font-size:15px;font-weight:700}</style></head>
-<body><div class="card"><div class="icon">✓</div>
-<h1>¡Cuenta verificada!</h1>
-<p>Tu correo fue confirmado exitosamente.<br>Ya puedes iniciar sesión en la app ShareCampus.</p>
-<a class="btn" href="sharecampus://login">Abrir la app →</a>
-</div></body></html>`;
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;background:linear-gradient(135deg,#7C3AED,#5B21B6);display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,sans-serif}
+.card{background:#fff;border-radius:24px;padding:40px 32px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.icon{width:72px;height:72px;border-radius:50%;background:#D1FAE5;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;font-size:32px}
+h1{font-size:22px;font-weight:800;color:#1E1B4B;margin-bottom:10px}
+p{font-size:14px;color:#6B7280;line-height:1.6;margin-bottom:20px}
+.timer{font-size:13px;color:#9CA3AF;margin-bottom:16px}
+.btn{display:inline-block;background:#7C3AED;color:#fff;padding:14px 32px;border-radius:12px;text-decoration:none;font-size:15px;font-weight:700;box-shadow:0 8px 20px rgba(124,58,237,.4)}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">✓</div>
+  <h1>Cuenta verificada!</h1>
+  <p>Tu correo fue confirmado exitosamente.<br>Ya puedes iniciar sesion en ShareCampus.</p>
+  <p class="timer" id="countdown">Abriendo la app en <strong>3</strong>s...</p>
+  <a class="btn" href="sharecampus://login" id="open-btn">Abrir ShareCampus →</a>
+</div>
+<script>
+  var secs = 3;
+  var el = document.querySelector('#countdown strong');
+  var t = setInterval(function(){
+    secs--;
+    if(el) el.textContent = secs;
+    if(secs <= 0){
+      clearInterval(t);
+      document.getElementById('countdown').style.display='none';
+      window.location.href = 'sharecampus://login';
+    }
+  }, 1000);
+  // Intento inmediato por si el navegador soporta el scheme
+  setTimeout(function(){ window.location.href = 'sharecampus://login'; }, 300);
+</script>
+</body></html>`;
     }
     return `<!DOCTYPE html><html lang="es">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">

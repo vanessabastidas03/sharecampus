@@ -49,6 +49,9 @@ export default function LoginScreen({ navigation }: Props) {
   const [showResend, setShowResend] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendStatus, setResendStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [resendError, setResendError] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const logoScale = useRef(new Animated.Value(0)).current;
   const cardY = useRef(new Animated.Value(50)).current;
@@ -114,14 +117,32 @@ export default function LoginScreen({ navigation }: Props) {
     }
   }
 
+  function startCooldown() {
+    setResendCooldown(60);
+    cooldownRef.current = setInterval(() => {
+      setResendCooldown(prev => {
+        if (prev <= 1) {
+          clearInterval(cooldownRef.current!);
+          cooldownRef.current = null;
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }
+
   async function handleResend() {
-    if (!email.trim()) return;
+    if (!email.trim() || resendCooldown > 0) return;
     setResendLoading(true);
     setResendStatus('idle');
+    setResendError('');
     try {
       await api.post('/auth/resend-verification', { email: email.trim().toLowerCase() });
       setResendStatus('success');
-    } catch {
+      startCooldown();
+    } catch (err: any) {
+      const msg = err.response?.data?.message ?? err.response?.data?.error ?? err.message ?? '';
+      setResendError(msg ? String(msg) : 'Error de conexion. Verifica tu internet.');
       setResendStatus('error');
     } finally {
       setResendLoading(false);
@@ -221,30 +242,43 @@ export default function LoginScreen({ navigation }: Props) {
             <View style={styles.resendBox}>
               <Text style={styles.resendTitle}>Cuenta sin verificar</Text>
               <Text style={styles.resendHint}>
-                Se enviara un nuevo enlace a{' '}
+                Reenviaremos el enlace a{' '}
                 <Text style={styles.resendEmail}>{email.trim().toLowerCase()}</Text>
               </Text>
               {resendStatus === 'success' && (
                 <View style={styles.resendSuccess}>
                   <Text style={styles.resendSuccessText}>
-                    Enlace enviado. Revisa tu bandeja (y spam).
+                    Enlace enviado. Revisa tu bandeja de entrada y spam.
                   </Text>
+                  <Pressable
+                    onPress={() => { setShowResend(false); setError(''); setPassword(''); }}
+                    style={{ marginTop: 6 }}
+                  >
+                    <Text style={styles.resendRetryLoginText}>
+                      Ya verifique → Intentar login
+                    </Text>
+                  </Pressable>
                 </View>
               )}
               {resendStatus === 'error' && (
                 <View style={styles.resendError}>
-                  <Text style={styles.resendErrorText}>
-                    Error al enviar. Intenta de nuevo.
-                  </Text>
+                  <Text style={styles.resendErrorText}>{resendError || 'Error al enviar. Intenta de nuevo.'}</Text>
                 </View>
               )}
               <Pressable
-                style={[styles.resendBtn, resendLoading && styles.btnLoading]}
+                style={[
+                  styles.resendBtn,
+                  (resendLoading || resendCooldown > 0) && styles.resendBtnDisabled,
+                ]}
                 onPress={handleResend}
-                disabled={resendLoading || !email.trim()}
+                disabled={resendLoading || resendCooldown > 0 || !email.trim()}
               >
                 {resendLoading ? (
                   <ActivityIndicator color={COLORS.primary} size="small" />
+                ) : resendCooldown > 0 ? (
+                  <Text style={styles.resendBtnText}>
+                    Reenviar en {resendCooldown}s
+                  </Text>
                 ) : (
                   <Text style={styles.resendBtnText}>Reenviar enlace de verificacion</Text>
                 )}
@@ -419,6 +453,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
   },
   resendBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.primary },
+  resendBtnDisabled: { opacity: 0.5 },
+  resendRetryLoginText: { fontSize: 12, fontWeight: '700', color: COLORS.primary, textDecorationLine: 'underline' },
   resendSuccess: {
     backgroundColor: '#D1FAE5', borderRadius: 8, padding: 8, marginBottom: 8,
   },
