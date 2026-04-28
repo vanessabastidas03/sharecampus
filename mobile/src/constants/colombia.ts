@@ -1,0 +1,93 @@
+export const UNIVERSITIES: { name: string; city: string; department: string }[] = [
+  // ANTIOQUIA
+  { name: 'Universidad de Antioquia', city: 'Medellín', department: 'Antioquia' },
+  { name: 'Universidad EAFIT', city: 'Medellín', department: 'Antioquia' },
+  { name: 'Universidad Pontificia Bolivariana', city: 'Medellín', department: 'Antioquia' },
+  { name: 'Universidad de Medellín', city: 'Medellín', department: 'Antioquia' },
+  { name: 'Universidad CES', city: 'Medellín', department: 'Antioquia' },
+  { name: 'ITM - Instituto Tecnológico Metropolitano', city: 'Medellín', department: 'Antioquia' },
+  { name: 'Politécnico Colombiano Jaime Isaza Cadavid', city: 'Medellín', department: 'Antioquia' },
+  { name: 'Universidad Autónoma Latinoamericana (UNAULA)', city: 'Medellín', department: 'Antioquia' },
+  { name: 'Universidad Cooperativa de Colombia (Medellín)', city: 'Medellín', department: 'Antioquia' },
+  { name: 'CEIPA Business School', city: 'Sabaneta', department: 'Antioquia' },
+  // BOGOTÁ D.C.
+  { name: 'Universidad Nacional de Colombia', city: 'Bogotá', department: 'Bogotá D.C.' },
+  { name: 'Universidad de los Andes', city: 'Bogotá', department: 'Bogotá D.C.' },
+  { name: 'Pontificia Universidad Javeriana', city: 'Bogotá', department: 'Bogotá D.C.' },
+  { name: 'Universidad del Rosario', city: 'Bogotá', department: 'Bogotá D.C.' },
+  { name: 'Universidad Externado de Colombia', city: 'Bogotá', department: 'Bogotá D.C.' },
+  { name: 'Universidad de La Sabana', city: 'Chía', department: 'Cundinamarca' },
+  { name: 'Universidad Distrital Francisco José de Caldas', city: 'Bogotá', department: 'Bogotá D.C.' },
+  { name: 'Universidad Central', city: 'Bogotá', department: 'Bogotá D.C.' },
+  { name: 'Universidad El Bosque', city: 'Bogotá', department: 'Bogotá D.C.' },
+  { name: 'Universidad Santo Tomás (Bogotá)', city: 'Bogotá', department: 'Bogotá D.C.' },
+  { name: 'Universidad Sergio Arboleda', city: 'Bogotá', department: 'Bogotá D.C.' },
+  { name: 'Universidad de La Salle', city: 'Bogotá', department: 'Bogotá D.C.' },
+  { name: 'Universidad Piloto de Colombia', city: 'Bogotá', department: 'Bogotá D.C.' },
+  { name: 'UNIMINUTO (Bogotá)', city: 'Bogotá', department: 'Bogotá D.C.' },
+  { name: 'Universidad Militar Nueva Granada', city: 'Bogotá', department: 'Bogotá D.C.' },
+  { name: 'Universidad EAN', city: 'Bogotá', department: 'Bogotá D.C.' },
+  { name: 'Universidad Jorge Tadeo Lozano', city: 'Bogotá', department: 'Bogotá D.C.' },
+  { name: 'Universidad Manuela Beltrán', city: 'Bogotá', department: 'Bogotá D.C.' },
+  { name: 'Universidad Antonio Nariño (Bogotá)', city: 'Bogotá', department: 'Bogotá D.C.' },
+  // CALI / VALLE DEL CAUCA
+  { name: 'Universidad del Valle', city: 'Cali', department: 'Valle del Cauca' },
+  { name: 'Pontificia Universidad Javeriana (Cali)', city: 'Cali', department: 'Valle del Cauca' },
+  { name: 'Universidad Autónoma de Occidente', city: 'Cali', department: 'Valle del Cauca' },
+  { name: 'Universidad ICESI', city: 'Cali', department: 'Valle del Cauca' },
+  { name: 'Universidad Santiago de Cali', city: 'Cali', department: 'Valle del Cauca' },
+  { name: 'Universidad San Buenaventura (Cali)', city: 'Cali', department: 'Valle del Cauca' },
+  // SANTANDER
+  { name: 'Universidad Industrial de Santander (UIS)', city: 'Bucaramanga', department: 'Santander' },
+  { name: 'Universidad Autónoma de Bucaramanga (UNAB)', city: 'Bucaramanga', department: 'Santander' },
+  { name: 'Universidad de Santander (UDES)', city: 'Bucaramanga', department: 'Santander' },
+  { name: 'Universidad Pontificia Bolivariana (Bucaramanga)', city: 'Bucaramanga', department: 'Santander' },
+  // EJE CAFETERO
+  { name: 'Universidad de Caldas', city: 'Manizales', department: 'Caldas' },
+  { name: 'Universidad de Manizales', city: 'Manizales', department: 'Caldas' },
+  { name: 'Universidad Autónoma de Manizales', city: 'Manizales', department: 'Caldas' },
+  { name: 'Universidad Tecnológica de Pereira (UTP)', city: 'Pereira', department: 'Risaralda' },
+  { name: 'Universidad Libre (Pereira)', city: 'Pereira', department: 'Risaralda' },
+  { name: 'Universidad del Quindío', city: 'Armenia', department: 'Quindío' },
+  { name: 'Universidad La Gran Colombia (Armenia)', city: 'Armenia', department: 'Quindío' },
+  // COSTA CARIBE
+  { name: 'Universidad del Norte', city: 'Barranquilla', department: 'Atlántico' },
+  { name: 'Universidad del Atlántico', city: 'Barranquilla', department: 'Atlántico' },
+  { name: 'Universidad Cooperativa de Colombia (Barranquilla)', city: 'Barranquilla', department: 'Atlántico' },
+  { name: 'Universidad de Cartagena', city: 'Cartagena', department: 'Bolívar' },
+  { name: 'Universidad Tecnológica de Bolívar (UTB)', city: 'Cartagena', department: 'Bolívar' },
+  { name: 'Corporación Universitaria Rafael Núñez', city: 'Cartagena', department: 'Bolívar' },
+  { name: 'Universidad Cooperativa de Colombia (Cartagena)', city: 'Cartagena', department: 'Bolívar' },
+  // OTRAS REGIONES
+  { name: 'Universidad de Nariño (Pasto)', city: 'Pasto', department: 'Nariño' },
+  { name: 'Universidad Mariana (Pasto)', city: 'Pasto', department: 'Nariño' },
+  { name: 'Universidad del Cauca (Popayán)', city: 'Popayán', department: 'Cauca' },
+  { name: 'Universidad Surcolombiana (Neiva)', city: 'Neiva', department: 'Huila' },
+  { name: 'Universidad de los Llanos (Villavicencio)', city: 'Villavicencio', department: 'Meta' },
+  { name: 'Universidad de Córdoba (Montería)', city: 'Montería', department: 'Córdoba' },
+  { name: 'Universidad de la Amazonía (Florencia)', city: 'Florencia', department: 'Caquetá' },
+  { name: 'Universidad Cooperativa de Colombia (varias sedes)', city: '', department: '' },
+  { name: 'UNIMINUTO (varias sedes)', city: '', department: '' },
+  { name: 'UCC – Universitaria de Colombia', city: 'Bogotá', department: 'Bogotá D.C.' },
+  { name: 'Otra universidad', city: '', department: '' },
+];
+
+export const UNIVERSITY_NAMES = UNIVERSITIES.map(u => u.name);
+
+export const CITIES = [
+  'Bogotá', 'Medellín', 'Cali', 'Barranquilla', 'Cartagena', 'Cúcuta',
+  'Bucaramanga', 'Pereira', 'Santa Marta', 'Ibagué', 'Pasto', 'Manizales',
+  'Neiva', 'Villavicencio', 'Armenia', 'Montería', 'Sincelejo', 'Popayán',
+  'Valledupar', 'Tunja', 'Florencia', 'Quibdó', 'Riohacha', 'San Andrés',
+  'Leticia', 'Mocoa', 'Inírida', 'Mitú', 'Puerto Carreño', 'Yopal', 'Arauca',
+  'Sabaneta', 'Chía', 'Bello', 'Itagüí',
+];
+
+export const DEPARTMENTS = [
+  'Amazonas', 'Antioquia', 'Arauca', 'Atlántico', 'Bogotá D.C.', 'Bolívar',
+  'Boyacá', 'Caldas', 'Caquetá', 'Casanare', 'Cauca', 'Cesar', 'Chocó',
+  'Córdoba', 'Cundinamarca', 'Guainía', 'Guaviare', 'Huila', 'La Guajira',
+  'Magdalena', 'Meta', 'Nariño', 'Norte de Santander', 'Putumayo', 'Quindío',
+  'Risaralda', 'San Andrés y Providencia', 'Santander', 'Sucre', 'Tolima',
+  'Valle del Cauca', 'Vaupés', 'Vichada',
+];
