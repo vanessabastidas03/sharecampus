@@ -41,6 +41,12 @@ export class User {
   @Column({ nullable: true })
   semester: number;
 
+  @Column({ type: 'text', nullable: true, default: null })
+  ciudad: string | null = null;
+
+  @Column({ type: 'text', nullable: true, default: null })
+  departamento: string | null = null;
+
   @Column({ type: 'float', default: 0 })
   rating: number;
 

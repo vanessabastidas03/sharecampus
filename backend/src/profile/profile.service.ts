@@ -22,12 +22,16 @@ export class ProfileService {
       full_name?: string;
       faculty?: string;
       semester?: number;
+      ciudad?: string | null;
+      departamento?: string | null;
       is_profile_complete?: boolean;
     } = {};
 
     if (dto.full_name) updateData.full_name = dto.full_name;
     if (dto.faculty) updateData.faculty = dto.faculty;
     if (dto.semester) updateData.semester = dto.semester;
+    if (dto.ciudad !== undefined) updateData.ciudad = dto.ciudad;
+    if (dto.departamento !== undefined) updateData.departamento = dto.departamento;
 
     const user = await this.usersService.findById(userId);
     updateData.is_profile_complete = !!(

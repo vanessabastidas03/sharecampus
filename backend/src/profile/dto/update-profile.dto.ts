@@ -16,4 +16,12 @@ export class UpdateProfileDto {
   @Max(12)
   @Type(() => Number)
   semester?: number;
+
+  @IsOptional()
+  @IsString()
+  ciudad?: string | null;
+
+  @IsOptional()
+  @IsString()
+  departamento?: string | null;
 }

@@ -20,12 +20,18 @@ export class WishlistService {
     search_query: string,
     category?: string,
     campus?: string,
+    universidad?: string,
+    ciudad?: string,
+    departamento?: string,
   ): Promise<Wishlist> {
     const wishlist = this.wishlistRepository.create({
       user_id: userId,
       search_query,
       category: category || null,
       campus: campus || null,
+      universidad: universidad || null,
+      ciudad: ciudad || null,
+      departamento: departamento || null,
     });
     return this.wishlistRepository.save(wishlist);
   }
@@ -59,8 +65,12 @@ export class WishlistService {
         !wishlist.category || wishlist.category === newItem.category;
       const campusMatch =
         !wishlist.campus || wishlist.campus === newItem.campus;
+      const ciudadMatch =
+        !wishlist.ciudad || wishlist.ciudad === newItem.ciudad;
+      const departamentoMatch =
+        !wishlist.departamento || wishlist.departamento === newItem.departamento;
 
-      if (titleMatch && categoryMatch && campusMatch) {
+      if (titleMatch && categoryMatch && campusMatch && ciudadMatch && departamentoMatch) {
         await this.notificationsService.notifyWishlistMatch(
           wishlist.user_id,
           newItem.title,

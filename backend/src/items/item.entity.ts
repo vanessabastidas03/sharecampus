@@ -57,6 +57,12 @@ export class Item {
   @Column({ type: 'text', nullable: true })
   campus: string | null;
 
+  @Column({ type: 'text', nullable: true, default: null })
+  ciudad: string | null = null;
+
+  @Column({ type: 'text', nullable: true, default: null })
+  departamento: string | null = null;
+
   // Precio de alquiler (solo aplica cuando offer_type = Alquiler)
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   rental_price!: number | null;

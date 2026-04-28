@@ -13,6 +13,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Animated,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NavigationProp } from '@react-navigation/native';
@@ -22,6 +24,7 @@ import { MainStackParamList } from '../navigation/AppNavigator';
 import api from '../services/api';
 import { Profile } from '../types';
 import { COLORS, SHADOWS } from '../theme';
+import { DEPARTMENTS, CITIES_BY_DEPARTMENT } from '../constants/colombia';
 
 type Props = { navigation: NavigationProp<MainStackParamList> };
 
@@ -30,11 +33,21 @@ type FieldErrors = {
   semester?: string;
 };
 
-function completionPercent(name: string, faculty: string, semester: string): number {
+function completionPercent(
+  name: string,
+  hasPhoto: boolean,
+  faculty: string,
+  semester: string,
+  ciudad: string,
+  departamento: string,
+): number {
   let score = 0;
-  if (name.trim().length >= 2) score += 40;
-  if (faculty.trim().length >= 2) score += 35;
-  if (semester && Number(semester) >= 1) score += 25;
+  if (name.trim().length >= 2) score += 25;
+  if (hasPhoto) score += 20;
+  if (faculty.trim().length >= 2) score += 20;
+  if (semester && Number(semester) >= 1) score += 15;
+  if (ciudad.trim().length >= 2) score += 10;
+  if (departamento.trim().length >= 2) score += 10;
   return score;
 }
 
@@ -43,6 +56,8 @@ export default function EditProfileScreen({ navigation }: Props) {
   const [fullName, setFullName] = useState('');
   const [faculty, setFaculty] = useState('');
   const [semester, setSemester] = useState('');
+  const [ciudad, setCiudad] = useState('');
+  const [departamento, setDepartamento] = useState('');
   const [newPhotoUri, setNewPhotoUri] = useState<string | null>(null);
   const [newPhotoMime, setNewPhotoMime] = useState('image/jpeg');
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -50,10 +65,15 @@ export default function EditProfileScreen({ navigation }: Props) {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
+  // Modales de ubicación
+  const [deptModalVisible, setDeptModalVisible] = useState(false);
+  const [deptSearch, setDeptSearch] = useState('');
+  const [ciudadModalVisible, setCiudadModalVisible] = useState(false);
+  const [ciudadSearch, setCiudadSearch] = useState('');
+
   const avatarScale = useRef(new Animated.Value(0.5)).current;
   const avatarOpacity = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
-  const formOpacity = useRef(new Animated.Value(0)).current;
   const saveScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -65,10 +85,11 @@ export default function EditProfileScreen({ navigation }: Props) {
         setFullName(data.full_name ?? '');
         setFaculty(data.faculty ?? '');
         setSemester(data.semester ? String(data.semester) : '');
+        setCiudad(data.ciudad ?? '');
+        setDepartamento(data.departamento ?? '');
         Animated.parallel([
           Animated.spring(avatarScale, { toValue: 1, tension: 80, friction: 8, useNativeDriver: true }),
           Animated.timing(avatarOpacity, { toValue: 1, duration: 350, useNativeDriver: true }),
-          Animated.timing(formOpacity, { toValue: 1, duration: 450, useNativeDriver: true }),
         ]).start();
       })
       .catch(() =>
@@ -79,11 +100,30 @@ export default function EditProfileScreen({ navigation }: Props) {
       .finally(() => setLoadingProfile(false));
   }, []);
 
-  // Animate progress bar when fields change
+  const hasPhoto = !!(newPhotoUri || profile?.photo_url);
+
   useEffect(() => {
-    const pct = completionPercent(fullName, faculty, semester);
+    const pct = completionPercent(fullName, hasPhoto, faculty, semester, ciudad, departamento);
     Animated.timing(progressAnim, { toValue: pct, duration: 500, useNativeDriver: false }).start();
-  }, [fullName, faculty, semester]);
+  }, [fullName, hasPhoto, faculty, semester, ciudad, departamento]);
+
+  const filteredDepts = deptSearch.trim()
+    ? DEPARTMENTS.filter(d => d.toLowerCase().includes(deptSearch.toLowerCase()))
+    : DEPARTMENTS;
+
+  const citiesForDept: string[] = departamento
+    ? (CITIES_BY_DEPARTMENT[departamento] ?? [])
+    : Object.values(CITIES_BY_DEPARTMENT).flat();
+
+  const filteredCiudades = ciudadSearch.trim()
+    ? citiesForDept.filter(c => c.toLowerCase().includes(ciudadSearch.toLowerCase()))
+    : citiesForDept;
+
+  function handleSelectDept(dept: string) {
+    setDepartamento(dept);
+    setCiudad('');
+    setDeptModalVisible(false);
+  }
 
   async function pickPhoto() {
     try {
@@ -151,6 +191,8 @@ export default function EditProfileScreen({ navigation }: Props) {
         ...(fullName.trim() ? { full_name: fullName.trim() } : {}),
         ...(faculty.trim() ? { faculty: faculty.trim() } : {}),
         ...(semester ? { semester: Number(semester) } : {}),
+        ciudad: ciudad.trim() || null,
+        departamento: departamento.trim() || null,
       });
       Alert.alert('¡Guardado! ✅', 'Tu perfil fue actualizado correctamente.', [
         { text: 'OK', onPress: () => navigation.goBack() },
@@ -178,7 +220,7 @@ export default function EditProfileScreen({ navigation }: Props) {
     ? { uri: profile.photo_url }
     : null;
 
-  const pct = completionPercent(fullName, faculty, semester);
+  const pct = completionPercent(fullName, hasPhoto, faculty, semester, ciudad, departamento);
   const progressColor = pct === 100 ? COLORS.emerald : COLORS.primary;
 
   return (
@@ -193,7 +235,6 @@ export default function EditProfileScreen({ navigation }: Props) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-
           {/* ── HEADER ───────────────────────────── */}
           <View style={styles.header}>
             <View style={styles.blob1} />
@@ -206,7 +247,6 @@ export default function EditProfileScreen({ navigation }: Props) {
 
             <Text style={styles.headerTitle}>Editar perfil</Text>
 
-            {/* Avatar con botón flotante de cámara */}
             <Animated.View
               style={[
                 styles.avatarContainer,
@@ -234,7 +274,7 @@ export default function EditProfileScreen({ navigation }: Props) {
           </View>
 
           {/* ── BARRA DE COMPLETITUD ─────────────── */}
-          <Animated.View style={[styles.progressCard, { opacity: formOpacity }]}>
+          <View style={styles.progressCard}>
             <View style={styles.progressRow}>
               <View style={styles.progressLabelRow}>
                 <Ionicons name="stats-chart" size={14} color={progressColor} />
@@ -261,12 +301,12 @@ export default function EditProfileScreen({ navigation }: Props) {
             <Text style={styles.progressHint}>
               {pct === 100
                 ? '¡Perfil completo! Los usuarios confían más en ti.'
-                : 'Agrega nombre, facultad y semestre para generar más confianza.'}
+                : 'Completa nombre, facultad, semestre y ubicación para generar más confianza.'}
             </Text>
-          </Animated.View>
+          </View>
 
           {/* ── DATOS PERSONALES ─────────────────── */}
-          <Animated.View style={[styles.card, { opacity: formOpacity }]}>
+          <View style={styles.card}>
             <View style={styles.cardHeader}>
               <View style={[styles.cardIconWrap, { backgroundColor: COLORS.primaryLight }]}>
                 <Ionicons name="person-outline" size={17} color={COLORS.primary} />
@@ -299,6 +339,7 @@ export default function EditProfileScreen({ navigation }: Props) {
                 placeholderTextColor={COLORS.textMuted}
                 autoCapitalize="words"
                 maxLength={80}
+                editable={true}
                 onFocus={() => setFocusedField('name')}
                 onBlur={() => setFocusedField(null)}
               />
@@ -306,10 +347,10 @@ export default function EditProfileScreen({ navigation }: Props) {
             {!!fieldErrors.fullName && (
               <Text style={styles.fieldError}>{fieldErrors.fullName}</Text>
             )}
-          </Animated.View>
+          </View>
 
           {/* ── INFORMACIÓN ACADÉMICA ────────────── */}
-          <Animated.View style={[styles.card, { opacity: formOpacity }]}>
+          <View style={styles.card}>
             <View style={styles.cardHeader}>
               <View style={[styles.cardIconWrap, { backgroundColor: COLORS.skyLight }]}>
                 <Ionicons name="school-outline" size={17} color={COLORS.sky} />
@@ -338,6 +379,7 @@ export default function EditProfileScreen({ navigation }: Props) {
                 placeholderTextColor={COLORS.textMuted}
                 autoCapitalize="words"
                 maxLength={80}
+                editable={true}
                 onFocus={() => setFocusedField('faculty')}
                 onBlur={() => setFocusedField(null)}
               />
@@ -367,7 +409,70 @@ export default function EditProfileScreen({ navigation }: Props) {
             {!!fieldErrors.semester && (
               <Text style={styles.fieldError}>{fieldErrors.semester}</Text>
             )}
-          </Animated.View>
+          </View>
+
+          {/* ── UBICACIÓN ────────────────────────── */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIconWrap, { backgroundColor: '#D1FAE5' }]}>
+                <Ionicons name="location-outline" size={17} color={COLORS.emerald} />
+              </View>
+              <Text style={styles.cardTitle}>📍 Ubicación</Text>
+            </View>
+
+            {/* Departamento */}
+            <Text style={styles.fieldLabel}>Departamento</Text>
+            <TouchableOpacity
+              style={[styles.inputWrap, styles.selectorWrap]}
+              onPress={() => { setDeptSearch(''); setDeptModalVisible(true); }}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="map-outline"
+                size={16}
+                color={COLORS.textMuted}
+                style={styles.inputIcon}
+              />
+              <Text style={[styles.input, { paddingVertical: 12, color: departamento ? COLORS.textPrimary : COLORS.textMuted }]}>
+                {departamento || 'Selecciona tu departamento...'}
+              </Text>
+              {departamento ? (
+                <TouchableOpacity onPress={() => { setDepartamento(''); setCiudad(''); }} hitSlop={8}>
+                  <Ionicons name="close-circle" size={18} color={COLORS.textMuted} />
+                </TouchableOpacity>
+              ) : (
+                <Ionicons name="chevron-down" size={16} color={COLORS.textMuted} />
+              )}
+            </TouchableOpacity>
+
+            {/* Ciudad */}
+            <Text style={[styles.fieldLabel, { marginTop: 14 }]}>Ciudad</Text>
+            <TouchableOpacity
+              style={[styles.inputWrap, styles.selectorWrap]}
+              onPress={() => { setCiudadSearch(''); setCiudadModalVisible(true); }}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="location-outline"
+                size={16}
+                color={COLORS.textMuted}
+                style={styles.inputIcon}
+              />
+              <Text style={[styles.input, { paddingVertical: 12, color: ciudad ? COLORS.textPrimary : COLORS.textMuted }]}>
+                {ciudad || 'Selecciona tu ciudad...'}
+              </Text>
+              {ciudad ? (
+                <TouchableOpacity onPress={() => setCiudad('')} hitSlop={8}>
+                  <Ionicons name="close-circle" size={18} color={COLORS.textMuted} />
+                </TouchableOpacity>
+              ) : (
+                <Ionicons name="chevron-down" size={16} color={COLORS.textMuted} />
+              )}
+            </TouchableOpacity>
+            {departamento ? null : (
+              <Text style={styles.hintText}>Selecciona primero el departamento para filtrar ciudades</Text>
+            )}
+          </View>
 
           {/* ── BOTÓN GUARDAR ─────────────────────── */}
           <Animated.View style={[{ transform: [{ scale: saveScale }] }, styles.saveBtnWrap]}>
@@ -377,7 +482,6 @@ export default function EditProfileScreen({ navigation }: Props) {
               disabled={saving}
               activeOpacity={0.85}
             >
-              {/* Gradient simulation */}
               <View style={styles.saveBtnOverlay} />
               {saving ? (
                 <View style={styles.saveBtnRow}>
@@ -403,6 +507,117 @@ export default function EditProfileScreen({ navigation }: Props) {
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* ── Modal selector departamento ────── */}
+      <Modal
+        visible={deptModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setDeptModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Selecciona tu departamento</Text>
+              <TouchableOpacity onPress={() => setDeptModalVisible(false)}>
+                <Ionicons name="close" size={22} color={COLORS.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalSearch}>
+              <Ionicons name="search" size={15} color={COLORS.textMuted} style={{ marginRight: 8 }} />
+              <TextInput
+                style={styles.modalSearchInput}
+                value={deptSearch}
+                onChangeText={setDeptSearch}
+                placeholder="Buscar departamento..."
+                placeholderTextColor={COLORS.textMuted}
+                autoFocus
+              />
+            </View>
+            <FlatList
+              data={filteredDepts}
+              keyExtractor={item => item}
+              renderItem={({ item: dep }) => (
+                <TouchableOpacity
+                  style={[styles.listRow, departamento === dep && styles.listRowActive]}
+                  onPress={() => handleSelectDept(dep)}
+                >
+                  <Ionicons
+                    name="map"
+                    size={16}
+                    color={departamento === dep ? COLORS.primary : COLORS.textMuted}
+                    style={{ marginRight: 10 }}
+                  />
+                  <Text style={[styles.listRowText, departamento === dep && { color: COLORS.primary, fontWeight: '700' }]}>
+                    {dep}
+                  </Text>
+                  {departamento === dep && <Ionicons name="checkmark" size={16} color={COLORS.primary} />}
+                </TouchableOpacity>
+              )}
+              ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: COLORS.divider }} />}
+              keyboardShouldPersistTaps="handled"
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Modal selector ciudad ─────────── */}
+      <Modal
+        visible={ciudadModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setCiudadModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {departamento ? `Ciudades de ${departamento}` : 'Selecciona tu ciudad'}
+              </Text>
+              <TouchableOpacity onPress={() => setCiudadModalVisible(false)}>
+                <Ionicons name="close" size={22} color={COLORS.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalSearch}>
+              <Ionicons name="search" size={15} color={COLORS.textMuted} style={{ marginRight: 8 }} />
+              <TextInput
+                style={styles.modalSearchInput}
+                value={ciudadSearch}
+                onChangeText={setCiudadSearch}
+                placeholder="Buscar ciudad..."
+                placeholderTextColor={COLORS.textMuted}
+                autoFocus
+              />
+            </View>
+            <FlatList
+              data={filteredCiudades}
+              keyExtractor={item => item}
+              renderItem={({ item: c }) => (
+                <TouchableOpacity
+                  style={[styles.listRow, ciudad === c && styles.listRowActive]}
+                  onPress={() => { setCiudad(c); setCiudadModalVisible(false); }}
+                >
+                  <Ionicons
+                    name="location"
+                    size={16}
+                    color={ciudad === c ? COLORS.emerald : COLORS.textMuted}
+                    style={{ marginRight: 10 }}
+                  />
+                  <Text style={[styles.listRowText, ciudad === c && { color: COLORS.emerald, fontWeight: '700' }]}>
+                    {c}
+                  </Text>
+                  {ciudad === c && <Ionicons name="checkmark" size={16} color={COLORS.emerald} />}
+                </TouchableOpacity>
+              )}
+              ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: COLORS.divider }} />}
+              keyboardShouldPersistTaps="handled"
+              ListEmptyComponent={
+                <Text style={styles.emptyList}>No se encontraron ciudades</Text>
+              }
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -419,7 +634,6 @@ const styles = StyleSheet.create({
   loadingText: { marginTop: 12, fontSize: 14, color: COLORS.textMuted },
   scrollContent: { paddingBottom: 52 },
 
-  // ── Header
   header: {
     backgroundColor: '#667eea',
     alignItems: 'center',
@@ -460,7 +674,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  // Avatar
   avatarContainer: { position: 'relative', marginBottom: 8 },
   avatar: {
     width: 114, height: 114, borderRadius: 57,
@@ -486,7 +699,6 @@ const styles = StyleSheet.create({
   },
   tapHint: { color: 'rgba(255,255,255,0.65)', fontSize: 12 },
 
-  // Progress
   progressCard: {
     backgroundColor: '#fff',
     marginHorizontal: 16, marginTop: 18,
@@ -506,7 +718,6 @@ const styles = StyleSheet.create({
   progressFill: { height: 8, borderRadius: 4 },
   progressHint: { fontSize: 12, color: COLORS.textMuted, marginTop: 8, lineHeight: 17 },
 
-  // Cards
   card: {
     backgroundColor: '#fff',
     marginHorizontal: 16, marginTop: 14,
@@ -529,7 +740,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: COLORS.border,
     borderRadius: 12, paddingHorizontal: 12,
   },
-  inputWrapNarrow: { alignSelf: 'flex-start', minWidth: 140 },
+  selectorWrap: { paddingRight: 12 },
   inputWrapFocused: {
     borderColor: COLORS.primary,
     shadowColor: COLORS.primary,
@@ -550,8 +761,30 @@ const styles = StyleSheet.create({
     fontSize: 12, color: '#EF4444',
     marginTop: 5, marginLeft: 4,
   },
+  hintText: {
+    fontSize: 11, color: COLORS.textMuted,
+    marginTop: 6, marginLeft: 4, fontStyle: 'italic',
+  },
 
-  // Save button
+  semesterGrid: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2,
+  },
+  semesterChip: {
+    width: 44, height: 44, borderRadius: 12,
+    borderWidth: 1.5, borderColor: COLORS.border,
+    backgroundColor: '#F7F5FF',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  semesterChipActive: {
+    backgroundColor: COLORS.primary, borderColor: COLORS.primary,
+  },
+  semesterChipText: {
+    fontSize: 15, fontWeight: '700', color: COLORS.textMuted,
+  },
+  semesterChipTextActive: {
+    color: '#fff',
+  },
+
   saveBtnWrap: { marginHorizontal: 16, marginTop: 22 },
   saveBtn: {
     backgroundColor: '#667eea',
@@ -574,22 +807,36 @@ const styles = StyleSheet.create({
     textAlign: 'center', marginTop: 16, marginHorizontal: 28, lineHeight: 17,
   },
 
-  semesterGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2,
+  // Modales
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end',
   },
-  semesterChip: {
-    width: 44, height: 44, borderRadius: 12,
+  modalSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    paddingTop: 16, maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingBottom: 12,
+    borderBottomWidth: 1, borderBottomColor: COLORS.divider,
+  },
+  modalTitle: { fontSize: 16, fontWeight: '800', color: COLORS.textPrimary },
+  modalSearch: {
+    flexDirection: 'row', alignItems: 'center',
+    margin: 12, paddingHorizontal: 14, paddingVertical: 10,
+    backgroundColor: COLORS.bg, borderRadius: 12,
     borderWidth: 1.5, borderColor: COLORS.border,
-    backgroundColor: '#F7F5FF',
-    justifyContent: 'center', alignItems: 'center',
   },
-  semesterChipActive: {
-    backgroundColor: COLORS.primary, borderColor: COLORS.primary,
+  modalSearchInput: { flex: 1, fontSize: 14, color: COLORS.textPrimary },
+  listRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 20, paddingVertical: 14,
   },
-  semesterChipText: {
-    fontSize: 15, fontWeight: '700', color: COLORS.textMuted,
-  },
-  semesterChipTextActive: {
-    color: '#fff',
+  listRowActive: { backgroundColor: COLORS.primaryLight },
+  listRowText: { flex: 1, fontSize: 14, color: COLORS.textPrimary },
+  emptyList: {
+    textAlign: 'center', color: COLORS.textMuted,
+    fontSize: 14, paddingVertical: 30,
   },
 });

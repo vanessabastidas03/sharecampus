@@ -198,7 +198,12 @@ export default function ItemDetailScreen({ navigation, route }: Props) {
           </View>
 
           <Text style={styles.title}>{item.title}</Text>
-          {item.campus && <Text style={styles.campus}>📍 {item.campus}</Text>}
+          {item.campus && <Text style={styles.campus}>🎓 {item.campus}</Text>}
+          {(item.ciudad || item.departamento) && (
+            <Text style={styles.locationLine}>
+              📍 {[item.ciudad, item.departamento].filter(Boolean).join(', ')}
+            </Text>
+          )}
 
           {item.description && (
             <View style={styles.section}>
@@ -323,6 +328,7 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 12, fontWeight: '700' },
   title: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary, lineHeight: 28 },
   campus: { fontSize: 13, color: COLORS.textMuted, marginTop: 6 },
+  locationLine: { fontSize: 13, color: COLORS.textMuted, marginTop: 4 },
   section: { marginTop: 20 },
   sectionLabel: {
     fontSize: 11, fontWeight: '800', color: COLORS.textMuted,

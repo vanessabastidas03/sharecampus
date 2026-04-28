@@ -7,4 +7,6 @@ export class UpdateItemDto {
   offer_type?: ItemOfferType;
   status?: ItemStatus;
   campus?: string;
+  ciudad?: string | null;
+  departamento?: string | null;
 }

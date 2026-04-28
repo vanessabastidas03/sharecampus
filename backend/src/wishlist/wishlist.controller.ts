@@ -19,13 +19,24 @@ export class WishlistController {
   @Post()
   addToWishlist(
     @Request() req,
-    @Body() body: { search_query: string; category?: string; campus?: string },
+    @Body()
+    body: {
+      search_query: string;
+      category?: string;
+      campus?: string;
+      universidad?: string;
+      ciudad?: string;
+      departamento?: string;
+    },
   ) {
     return this.wishlistService.addToWishlist(
       req.user.sub,
       body.search_query,
       body.category,
       body.campus,
+      body.universidad,
+      body.ciudad,
+      body.departamento,
     );
   }
 

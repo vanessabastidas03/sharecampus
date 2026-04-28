@@ -22,6 +22,7 @@ import { MainStackParamList } from '../navigation/AppNavigator';
 import api from '../services/api';
 import { WishlistItem, CATEGORIES } from '../types';
 import { COLORS, SHADOWS } from '../theme';
+import { UNIVERSITIES, DEPARTMENTS, CITIES_BY_DEPARTMENT } from '../constants/colombia';
 
 type Props = { navigation: NavigationProp<MainStackParamList> };
 
@@ -36,13 +37,41 @@ interface AddModalProps {
 function AddModal({ visible, onClose, onAdded }: AddModalProps) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('');
-  const [campus, setCampus] = useState('');
+  const [universidad, setUniversidad] = useState('');
+  const [departamento, setDepartamento] = useState('');
+  const [ciudad, setCiudad] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Sub-modales dentro del AddModal
+  const [uniModalVisible, setUniModalVisible] = useState(false);
+  const [uniSearch, setUniSearch] = useState('');
+  const [deptModalVisible, setDeptModalVisible] = useState(false);
+  const [deptSearch, setDeptSearch] = useState('');
+  const [ciudadModalVisible, setCiudadModalVisible] = useState(false);
+  const [ciudadSearch, setCiudadSearch] = useState('');
+
+  const uniNames = UNIVERSITIES.map(u => u.name);
+  const filteredUnis = uniSearch.trim()
+    ? uniNames.filter(u => u.toLowerCase().includes(uniSearch.toLowerCase()))
+    : uniNames;
+
+  const filteredDepts = deptSearch.trim()
+    ? DEPARTMENTS.filter(d => d.toLowerCase().includes(deptSearch.toLowerCase()))
+    : DEPARTMENTS;
+
+  const citiesForDept = departamento
+    ? (CITIES_BY_DEPARTMENT[departamento] ?? [])
+    : Object.values(CITIES_BY_DEPARTMENT).flat();
+  const filteredCiudades = ciudadSearch.trim()
+    ? citiesForDept.filter(c => c.toLowerCase().includes(ciudadSearch.toLowerCase()))
+    : citiesForDept;
 
   function reset() {
     setQuery('');
     setCategory('');
-    setCampus('');
+    setUniversidad('');
+    setDepartamento('');
+    setCiudad('');
   }
 
   async function handleAdd() {
@@ -55,7 +84,9 @@ function AddModal({ visible, onClose, onAdded }: AddModalProps) {
       const { data } = await api.post<WishlistItem>('/wishlist', {
         search_query: query.trim(),
         ...(category ? { category } : {}),
-        ...(campus.trim() ? { campus: campus.trim() } : {}),
+        ...(universidad ? { campus: universidad, universidad } : {}),
+        ...(ciudad ? { ciudad } : {}),
+        ...(departamento ? { departamento } : {}),
       });
       onAdded(data);
       reset();
@@ -68,76 +99,243 @@ function AddModal({ visible, onClose, onAdded }: AddModalProps) {
   }
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        style={modalStyles.overlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <TouchableOpacity style={{ flex: 1 }} onPress={onClose} activeOpacity={1} />
-        <View style={modalStyles.sheet}>
-          <View style={modalStyles.handle} />
-          <Text style={modalStyles.title}>Agregar a lista de deseos</Text>
+    <>
+      <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+        <KeyboardAvoidingView
+          style={modalStyles.overlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <TouchableOpacity style={{ flex: 1 }} onPress={onClose} activeOpacity={1} />
+          <View style={modalStyles.sheet}>
+            <View style={modalStyles.handle} />
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <Text style={modalStyles.title}>Agregar a lista de deseos</Text>
 
-          <Text style={modalStyles.label}>
-            Que estas buscando? <Text style={modalStyles.req}>*</Text>
-          </Text>
-          <TextInput
-            style={modalStyles.input}
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Ej: Calculo diferencial, calculadora graficadora…"
-            placeholderTextColor="#9E9E9E"
-            autoFocus
-            maxLength={100}
-          />
+              <Text style={modalStyles.label}>
+                ¿Qué estás buscando? <Text style={modalStyles.req}>*</Text>
+              </Text>
+              <TextInput
+                style={modalStyles.input}
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Ej: Cálculo diferencial, calculadora graficadora…"
+                placeholderTextColor="#9E9E9E"
+                autoFocus
+                maxLength={100}
+              />
 
-          <Text style={modalStyles.label}>Categoria (opcional)</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={modalStyles.chipsRow}
-          >
-            {CATEGORIES.map(cat => (
-              <TouchableOpacity
-                key={cat}
-                style={[modalStyles.chip, category === cat && modalStyles.chipActive]}
-                onPress={() => setCategory(prev => (prev === cat ? '' : cat))}
+              <Text style={modalStyles.label}>Categoría (opcional)</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={modalStyles.chipsRow}
               >
-                <Text style={[modalStyles.chipText, category === cat && modalStyles.chipTextActive]}>
-                  {cat}
+                {CATEGORIES.map(cat => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[modalStyles.chip, category === cat && modalStyles.chipActive]}
+                    onPress={() => setCategory(prev => (prev === cat ? '' : cat))}
+                  >
+                    <Text style={[modalStyles.chipText, category === cat && modalStyles.chipTextActive]}>
+                      {cat}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Universidad */}
+              <Text style={modalStyles.label}>Universidad (opcional)</Text>
+              <TouchableOpacity
+                style={modalStyles.selector}
+                onPress={() => { setUniSearch(''); setUniModalVisible(true); }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="school-outline" size={15} color={COLORS.textMuted} style={{ marginRight: 8 }} />
+                <Text style={[modalStyles.selectorText, universidad && { color: '#1A1A1A' }]}>
+                  {universidad || 'Cualquier universidad'}
                 </Text>
+                {universidad
+                  ? <TouchableOpacity onPress={() => setUniversidad('')} hitSlop={8}><Ionicons name="close-circle" size={16} color={COLORS.textMuted} /></TouchableOpacity>
+                  : <Ionicons name="chevron-down" size={15} color={COLORS.textMuted} />}
               </TouchableOpacity>
-            ))}
-          </ScrollView>
 
-          <Text style={modalStyles.label}>Campus (opcional)</Text>
-          <TextInput
-            style={modalStyles.input}
-            value={campus}
-            onChangeText={setCampus}
-            placeholder="Ej: Sede Norte"
-            placeholderTextColor="#9E9E9E"
-            maxLength={60}
-          />
+              {/* Departamento */}
+              <Text style={modalStyles.label}>Departamento (opcional)</Text>
+              <TouchableOpacity
+                style={modalStyles.selector}
+                onPress={() => { setDeptSearch(''); setDeptModalVisible(true); }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="map-outline" size={15} color={COLORS.textMuted} style={{ marginRight: 8 }} />
+                <Text style={[modalStyles.selectorText, departamento && { color: '#1A1A1A' }]}>
+                  {departamento || 'Cualquier departamento'}
+                </Text>
+                {departamento
+                  ? <TouchableOpacity onPress={() => { setDepartamento(''); setCiudad(''); }} hitSlop={8}><Ionicons name="close-circle" size={16} color={COLORS.textMuted} /></TouchableOpacity>
+                  : <Ionicons name="chevron-down" size={15} color={COLORS.textMuted} />}
+              </TouchableOpacity>
 
-          <View style={modalStyles.actions}>
-            <TouchableOpacity style={modalStyles.cancelBtn} onPress={onClose}>
-              <Text style={modalStyles.cancelText}>Cancelar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[modalStyles.addBtn, saving && modalStyles.addBtnDisabled]}
-              onPress={handleAdd}
-              disabled={saving}
-              activeOpacity={0.85}
-            >
-              {saving
-                ? <ActivityIndicator color="#fff" size="small" />
-                : <Text style={modalStyles.addBtnText}>Agregar</Text>}
-            </TouchableOpacity>
+              {/* Ciudad */}
+              <Text style={modalStyles.label}>Ciudad (opcional)</Text>
+              <TouchableOpacity
+                style={modalStyles.selector}
+                onPress={() => { setCiudadSearch(''); setCiudadModalVisible(true); }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="location-outline" size={15} color={COLORS.textMuted} style={{ marginRight: 8 }} />
+                <Text style={[modalStyles.selectorText, ciudad && { color: '#1A1A1A' }]}>
+                  {ciudad || 'Cualquier ciudad'}
+                </Text>
+                {ciudad
+                  ? <TouchableOpacity onPress={() => setCiudad('')} hitSlop={8}><Ionicons name="close-circle" size={16} color={COLORS.textMuted} /></TouchableOpacity>
+                  : <Ionicons name="chevron-down" size={15} color={COLORS.textMuted} />}
+              </TouchableOpacity>
+
+              <View style={modalStyles.actions}>
+                <TouchableOpacity style={modalStyles.cancelBtn} onPress={onClose}>
+                  <Text style={modalStyles.cancelText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[modalStyles.addBtn, saving && modalStyles.addBtnDisabled]}
+                  onPress={handleAdd}
+                  disabled={saving}
+                  activeOpacity={0.85}
+                >
+                  {saving
+                    ? <ActivityIndicator color="#fff" size="small" />
+                    : <Text style={modalStyles.addBtnText}>Agregar</Text>}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Modal universidades */}
+      <Modal visible={uniModalVisible} animationType="slide" transparent onRequestClose={() => setUniModalVisible(false)}>
+        <View style={modalStyles.subOverlay}>
+          <View style={modalStyles.subSheet}>
+            <View style={modalStyles.subHeader}>
+              <Text style={modalStyles.subTitle}>Selecciona universidad</Text>
+              <TouchableOpacity onPress={() => setUniModalVisible(false)}>
+                <Ionicons name="close" size={22} color={COLORS.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <View style={modalStyles.subSearch}>
+              <Ionicons name="search" size={14} color={COLORS.textMuted} style={{ marginRight: 6 }} />
+              <TextInput
+                style={modalStyles.subSearchInput}
+                value={uniSearch}
+                onChangeText={setUniSearch}
+                placeholder="Buscar universidad..."
+                placeholderTextColor={COLORS.textMuted}
+                autoFocus
+              />
+            </View>
+            <FlatList
+              data={filteredUnis}
+              keyExtractor={i => i}
+              renderItem={({ item: u }) => (
+                <TouchableOpacity
+                  style={[modalStyles.listRow, universidad === u && modalStyles.listRowActive]}
+                  onPress={() => { setUniversidad(u); setUniModalVisible(false); }}
+                >
+                  <Ionicons name="school" size={15} color={universidad === u ? PRIMARY : COLORS.textMuted} style={{ marginRight: 10 }} />
+                  <Text style={[modalStyles.listRowText, universidad === u && { color: PRIMARY, fontWeight: '700' }]}>{u}</Text>
+                  {universidad === u && <Ionicons name="checkmark" size={15} color={PRIMARY} />}
+                </TouchableOpacity>
+              )}
+              ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: COLORS.divider }} />}
+              keyboardShouldPersistTaps="handled"
+            />
           </View>
         </View>
-      </KeyboardAvoidingView>
-    </Modal>
+      </Modal>
+
+      {/* Modal departamentos */}
+      <Modal visible={deptModalVisible} animationType="slide" transparent onRequestClose={() => setDeptModalVisible(false)}>
+        <View style={modalStyles.subOverlay}>
+          <View style={modalStyles.subSheet}>
+            <View style={modalStyles.subHeader}>
+              <Text style={modalStyles.subTitle}>Selecciona departamento</Text>
+              <TouchableOpacity onPress={() => setDeptModalVisible(false)}>
+                <Ionicons name="close" size={22} color={COLORS.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <View style={modalStyles.subSearch}>
+              <Ionicons name="search" size={14} color={COLORS.textMuted} style={{ marginRight: 6 }} />
+              <TextInput
+                style={modalStyles.subSearchInput}
+                value={deptSearch}
+                onChangeText={setDeptSearch}
+                placeholder="Buscar departamento..."
+                placeholderTextColor={COLORS.textMuted}
+                autoFocus
+              />
+            </View>
+            <FlatList
+              data={filteredDepts}
+              keyExtractor={i => i}
+              renderItem={({ item: d }) => (
+                <TouchableOpacity
+                  style={[modalStyles.listRow, departamento === d && modalStyles.listRowActive]}
+                  onPress={() => { setDepartamento(d); setCiudad(''); setDeptModalVisible(false); }}
+                >
+                  <Ionicons name="map" size={15} color={departamento === d ? PRIMARY : COLORS.textMuted} style={{ marginRight: 10 }} />
+                  <Text style={[modalStyles.listRowText, departamento === d && { color: PRIMARY, fontWeight: '700' }]}>{d}</Text>
+                  {departamento === d && <Ionicons name="checkmark" size={15} color={PRIMARY} />}
+                </TouchableOpacity>
+              )}
+              ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: COLORS.divider }} />}
+              keyboardShouldPersistTaps="handled"
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal ciudades */}
+      <Modal visible={ciudadModalVisible} animationType="slide" transparent onRequestClose={() => setCiudadModalVisible(false)}>
+        <View style={modalStyles.subOverlay}>
+          <View style={modalStyles.subSheet}>
+            <View style={modalStyles.subHeader}>
+              <Text style={modalStyles.subTitle}>
+                {departamento ? `Ciudades de ${departamento}` : 'Selecciona ciudad'}
+              </Text>
+              <TouchableOpacity onPress={() => setCiudadModalVisible(false)}>
+                <Ionicons name="close" size={22} color={COLORS.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <View style={modalStyles.subSearch}>
+              <Ionicons name="search" size={14} color={COLORS.textMuted} style={{ marginRight: 6 }} />
+              <TextInput
+                style={modalStyles.subSearchInput}
+                value={ciudadSearch}
+                onChangeText={setCiudadSearch}
+                placeholder="Buscar ciudad..."
+                placeholderTextColor={COLORS.textMuted}
+                autoFocus
+              />
+            </View>
+            <FlatList
+              data={filteredCiudades}
+              keyExtractor={i => i}
+              renderItem={({ item: c }) => (
+                <TouchableOpacity
+                  style={[modalStyles.listRow, ciudad === c && modalStyles.listRowActive]}
+                  onPress={() => { setCiudad(c); setCiudadModalVisible(false); }}
+                >
+                  <Ionicons name="location" size={15} color={ciudad === c ? PRIMARY : COLORS.textMuted} style={{ marginRight: 10 }} />
+                  <Text style={[modalStyles.listRowText, ciudad === c && { color: PRIMARY, fontWeight: '700' }]}>{c}</Text>
+                  {ciudad === c && <Ionicons name="checkmark" size={15} color={PRIMARY} />}
+                </TouchableOpacity>
+              )}
+              ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: COLORS.divider }} />}
+              keyboardShouldPersistTaps="handled"
+            />
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -149,9 +347,10 @@ const modalStyles = StyleSheet.create({
     borderTopRightRadius: 20,
     padding: 20,
     paddingBottom: 36,
+    maxHeight: '90%',
   },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#E0E0E0', alignSelf: 'center', marginBottom: 16 },
-  title: { fontSize: 17, fontWeight: '700', color: '#1A1A1A', marginBottom: 18 },
+  title: { fontSize: 17, fontWeight: '700', color: '#1A1A1A', marginBottom: 4 },
   label: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 6, marginTop: 14 },
   req: { color: '#D32F2F' },
   input: {
@@ -164,6 +363,13 @@ const modalStyles = StyleSheet.create({
     fontSize: 14,
     color: '#1A1A1A',
   },
+  selector: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#F5F7FA',
+    borderWidth: 1.5, borderColor: '#CBD5E1',
+    borderRadius: 10, paddingHorizontal: 13, paddingVertical: 11,
+  },
+  selectorText: { flex: 1, fontSize: 14, color: '#9E9E9E' },
   chipsRow: { gap: 8, paddingVertical: 2 },
   chip: {
     paddingHorizontal: 14,
@@ -176,7 +382,7 @@ const modalStyles = StyleSheet.create({
   chipActive: { backgroundColor: PRIMARY, borderColor: PRIMARY },
   chipText: { fontSize: 13, color: '#555' },
   chipTextActive: { color: '#fff', fontWeight: '700' },
-  actions: { flexDirection: 'row', gap: 10, marginTop: 22 },
+  actions: { flexDirection: 'row', gap: 10, marginTop: 22, marginBottom: 8 },
   cancelBtn: {
     flex: 1,
     borderWidth: 1.5,
@@ -195,6 +401,32 @@ const modalStyles = StyleSheet.create({
   },
   addBtnDisabled: { opacity: 0.6 },
   addBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  // Sub-modales
+  subOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  subSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    paddingTop: 16, maxHeight: '80%',
+  },
+  subHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingBottom: 12,
+    borderBottomWidth: 1, borderBottomColor: COLORS.divider,
+  },
+  subTitle: { fontSize: 16, fontWeight: '800', color: COLORS.textPrimary },
+  subSearch: {
+    flexDirection: 'row', alignItems: 'center',
+    margin: 12, paddingHorizontal: 14, paddingVertical: 10,
+    backgroundColor: COLORS.bg, borderRadius: 12,
+    borderWidth: 1.5, borderColor: COLORS.border,
+  },
+  subSearchInput: { flex: 1, fontSize: 14, color: COLORS.textPrimary },
+  listRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 20, paddingVertical: 14,
+  },
+  listRowActive: { backgroundColor: COLORS.primaryLight },
+  listRowText: { flex: 1, fontSize: 14, color: COLORS.textPrimary },
 });
 
 export default function WishlistScreen({ navigation }: Props) {
@@ -261,15 +493,21 @@ export default function WishlistScreen({ navigation }: Props) {
                 <Text style={styles.catBadgeText}>{item.category}</Text>
               </View>
             )}
-            {item.campus && (
+            {(item.universidad || item.campus) && (
+              <View style={styles.campusBadge}>
+                <Ionicons name="school-outline" size={10} color={PRIMARY} />
+                <Text style={styles.campusText}> {item.universidad || item.campus}</Text>
+              </View>
+            )}
+            {item.ciudad && (
               <View style={styles.campusBadge}>
                 <Ionicons name="location-outline" size={10} color={PRIMARY} />
-                <Text style={styles.campusText}> {item.campus}</Text>
+                <Text style={styles.campusText}> {item.ciudad}{item.departamento ? `, ${item.departamento}` : ''}</Text>
               </View>
             )}
           </View>
-          {!item.category && !item.campus && (
-            <Text style={styles.anyText}>Cualquier categoria y campus</Text>
+          {!item.category && !item.campus && !item.universidad && !item.ciudad && (
+            <Text style={styles.anyText}>Cualquier categoría, universidad y ciudad</Text>
           )}
         </View>
         <TouchableOpacity

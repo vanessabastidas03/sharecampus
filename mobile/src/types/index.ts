@@ -17,6 +17,8 @@ export interface Item {
   offer_type: 'Préstamo' | 'Intercambio' | 'Donación' | 'Alquiler';
   photos: string[];
   campus: string | null;
+  ciudad: string | null;
+  departamento: string | null;
   rental_price: number | null;
   rental_time_unit: string | null;
   user: UserProfile;
@@ -45,6 +47,8 @@ export interface Profile {
   photo_url: string | null;
   faculty: string | null;
   semester: number | null;
+  ciudad: string | null;
+  departamento: string | null;
   rating: number;
   rating_count: number;
   exchanges_count: number;
@@ -121,6 +125,9 @@ export interface WishlistItem {
   search_query: string;
   category: string | null;
   campus: string | null;
+  universidad: string | null;
+  ciudad: string | null;
+  departamento: string | null;
   is_active: boolean;
   created_at: string;
 }

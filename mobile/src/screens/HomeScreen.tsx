@@ -18,13 +18,17 @@ import { NavigationProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { MainStackParamList } from '../navigation/AppNavigator';
 import api from '../services/api';
-import { Item, CATEGORIES, OFFER_TYPES } from '../types';
+import { Item, Profile, CATEGORIES, OFFER_TYPES } from '../types';
 import { COLORS, CATEGORY_CONFIG, OFFER_CONFIG, STATUS_CFG, SHADOWS } from '../theme';
+
+type SectionHeader = { _header: true; label: string; key: string };
+type ListRow = Item | SectionHeader;
 
 type Props = { navigation: NavigationProp<MainStackParamList> };
 
 export default function HomeScreen({ navigation }: Props) {
   const [items, setItems] = useState<Item[]>([]);
+  const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
@@ -65,6 +69,10 @@ export default function HomeScreen({ navigation }: Props) {
     return () => pulse.stop();
   }, []);
 
+  useEffect(() => {
+    api.get<Profile>('/profile').then(({ data }) => setUserProfile(data)).catch(() => {});
+  }, []);
+
   const fetchItems = useCallback(
     async (q: string, cat: string, offer: string, isRefresh = false) => {
       if (isRefresh) setRefreshing(true);
@@ -94,6 +102,37 @@ export default function HomeScreen({ navigation }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, offerType]);
 
+  // Construye la lista con secciones "Cerca de ti" si el usuario tiene ubicación
+  function buildListData(): ListRow[] {
+    const userCity = userProfile?.ciudad ?? '';
+    const userDept = userProfile?.departamento ?? '';
+
+    if (!userCity && !userDept) return items;
+
+    const nearCity = items.filter(i => userCity && i.ciudad === userCity);
+    const nearDept = items.filter(
+      i => !nearCity.includes(i) && userDept && i.departamento === userDept,
+    );
+    const rest = items.filter(i => !nearCity.includes(i) && !nearDept.includes(i));
+
+    const rows: ListRow[] = [];
+    if (nearCity.length > 0) {
+      rows.push({ _header: true, label: `📍 Cerca de ti – ${userCity}`, key: 'h_city' });
+      rows.push(...nearCity);
+    }
+    if (nearDept.length > 0) {
+      rows.push({ _header: true, label: `📍 También en ${userDept}`, key: 'h_dept' });
+      rows.push(...nearDept);
+    }
+    if (rest.length > 0) {
+      if (nearCity.length > 0 || nearDept.length > 0) {
+        rows.push({ _header: true, label: 'Más publicaciones', key: 'h_rest' });
+      }
+      rows.push(...rest);
+    }
+    return rows;
+  }
+
   function handleSearchChange(text: string) {
     setSearch(text);
     if (searchTimer.current) clearTimeout(searchTimer.current);
@@ -113,7 +152,17 @@ export default function HomeScreen({ navigation }: Props) {
     setOfferType(prev => (prev === type ? '' : type));
   }
 
-  function renderItem({ item }: { item: Item }) {
+  function renderItem({ item: row }: { item: ListRow }) {
+    // Render section header
+    if ('_header' in row) {
+      return (
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionHeaderText}>{row.label}</Text>
+        </View>
+      );
+    }
+
+    const item = row as Item;
     const photo = item.photos?.[0];
     const displayName =
       item.user?.full_name ?? item.user?.email?.split('@')[0] ?? 'Usuario';
@@ -124,16 +173,15 @@ export default function HomeScreen({ navigation }: Props) {
       color: COLORS.primary, bg: COLORS.primaryLight, emoji: '🤝',
     };
     const statusCfg = STATUS_CFG[item.status] ?? { color: '#6B7280', bg: '#F3F4F6' };
+    const locationLine = [item.ciudad, item.departamento].filter(Boolean).join(', ');
 
     return (
       <Pressable
         style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
         onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
       >
-        {/* Colored left accent bar by offer type */}
         <View style={[styles.cardAccent, { backgroundColor: offerCfg.color }]} />
 
-        {/* Photo or placeholder */}
         {photo ? (
           <Image source={{ uri: photo }} style={styles.cardImage} resizeMode="cover" />
         ) : (
@@ -166,6 +214,11 @@ export default function HomeScreen({ navigation }: Props) {
           <Text style={styles.cardUser} numberOfLines={1}>
             👤 {displayName}{item.campus ? `  ·  ${item.campus}` : ''}
           </Text>
+          {!!locationLine && (
+            <Text style={styles.cardLocation} numberOfLines={1}>
+              📍 {locationLine}
+            </Text>
+          )}
         </View>
       </Pressable>
     );
@@ -336,8 +389,8 @@ export default function HomeScreen({ navigation }: Props) {
       ) : (
         <Animated.View style={{ flex: 1, opacity: listOpacity, transform: [{ translateY: listY }] }}>
         <FlatList
-          data={items}
-          keyExtractor={item => item.id}
+          data={buildListData()}
+          keyExtractor={row => ('_header' in row ? row.key : row.id)}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           refreshControl={
@@ -518,6 +571,14 @@ const styles = StyleSheet.create({
   statusDot: { width: 6, height: 6, borderRadius: 3 },
   statusText: { fontSize: 11, fontWeight: '700' },
   cardUser: { fontSize: 11, color: COLORS.textMuted, marginTop: 4 },
+  cardLocation: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
+  sectionHeader: {
+    paddingHorizontal: 14, paddingVertical: 8, paddingTop: 14,
+  },
+  sectionHeaderText: {
+    fontSize: 12, fontWeight: '700', color: COLORS.primary,
+    letterSpacing: 0.2,
+  },
   emptyBox: { alignItems: 'center', paddingTop: 60 },
   emptyIconWrap: {
     width: 100, height: 100, borderRadius: 50,

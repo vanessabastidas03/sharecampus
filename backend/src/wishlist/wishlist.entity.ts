@@ -29,6 +29,15 @@ export class Wishlist {
   @Column({ type: 'text', nullable: true })
   campus: string | null;
 
+  @Column({ type: 'text', nullable: true, default: null })
+  universidad: string | null = null;
+
+  @Column({ type: 'text', nullable: true, default: null })
+  ciudad: string | null = null;
+
+  @Column({ type: 'text', nullable: true, default: null })
+  departamento: string | null = null;
+
   @Column({ default: true })
   is_active: boolean;
 

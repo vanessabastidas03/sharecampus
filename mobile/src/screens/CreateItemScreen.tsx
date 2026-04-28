@@ -313,6 +313,8 @@ export default function CreateItemScreen({ navigation }: Props) {
         category,
         offer_type: offerType,
         campus: campus.trim() || undefined,
+        ciudad: city.trim() || undefined,
+        departamento: department.trim() || undefined,
         rental_price: offerType === 'Alquiler' && parsedPrice ? parsedPrice : undefined,
         rental_time_unit: offerType === 'Alquiler' && parsedPrice ? rentalTimeUnit : undefined,
       });
