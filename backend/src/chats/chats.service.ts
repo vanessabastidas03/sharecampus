@@ -1,9 +1,21 @@
-import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Chat, ChatStatus } from './chat.entity';
 import { FirebaseService } from '../firebase/firebase.service';
 import { UsersService } from '../users/users.service';
+
+export interface FirebaseMsg {
+  sender_id: string;
+  message: string;
+  timestamp: string;
+  type: string;
+}
 
 @Injectable()
 export class ChatsService {
@@ -14,7 +26,11 @@ export class ChatsService {
     private usersService: UsersService,
   ) {}
 
-  async createChat(senderId: string, itemId: string, receiverId: string): Promise<Chat> {
+  async createChat(
+    senderId: string,
+    itemId: string,
+    receiverId: string,
+  ): Promise<Chat> {
     const activeChats = await this.chatsRepository.count({
       where: [
         { sender_id: senderId, status: ChatStatus.ACTIVO },
@@ -23,7 +39,9 @@ export class ChatsService {
     });
 
     if (activeChats >= 10) {
-      throw new BadRequestException('Has alcanzado el límite de 10 chats activos simultáneos');
+      throw new BadRequestException(
+        'Has alcanzado el límite de 10 chats activos simultáneos',
+      );
     }
 
     const existing = await this.chatsRepository.findOne({
@@ -50,7 +68,11 @@ export class ChatsService {
     return this.chatsRepository.save(chat);
   }
 
-  async sendMessage(userId: string, chatId: string, message: string): Promise<void> {
+  async sendMessage(
+    userId: string,
+    chatId: string,
+    message: string,
+  ): Promise<void> {
     const chat = await this.chatsRepository.findOne({ where: { id: chatId } });
     if (!chat) throw new NotFoundException('Chat no encontrado');
     if (chat.sender_id !== userId && chat.receiver_id !== userId) {
@@ -75,25 +97,42 @@ export class ChatsService {
     });
   }
 
-  async respondToRequest(userId: string, chatId: string, action: 'accept' | 'reject'): Promise<Chat> {
+  async respondToRequest(
+    userId: string,
+    chatId: string,
+    action: 'accept' | 'reject',
+  ): Promise<Chat> {
     const chat = await this.chatsRepository.findOne({ where: { id: chatId } });
     if (!chat) throw new NotFoundException('Chat no encontrado');
-    if (chat.receiver_id !== userId) throw new ForbiddenException('Solo el receptor puede aceptar o rechazar');
+    if (chat.receiver_id !== userId)
+      throw new ForbiddenException('Solo el receptor puede aceptar o rechazar');
 
-    const newStatus = action === 'accept' ? ChatStatus.ACEPTADO : ChatStatus.RECHAZADO;
+    const newStatus =
+      action === 'accept' ? ChatStatus.ACEPTADO : ChatStatus.RECHAZADO;
     await this.chatsRepository.update(chatId, { status: newStatus });
 
     const db = this.firebaseService.getDatabase();
-    await db.ref(`chats/${chat.firebase_chat_id}/metadata/status`).set(newStatus);
+    await db
+      .ref(`chats/${chat.firebase_chat_id}/metadata/status`)
+      .set(newStatus);
 
-    return (await this.chatsRepository.findOne({ where: { id: chatId } })) as Chat;
+    return (await this.chatsRepository.findOne({
+      where: { id: chatId },
+    })) as Chat;
   }
-  async generateConfirmationCode(userId: string, chatId: string): Promise<{ code: string }> {
+
+  async generateConfirmationCode(
+    userId: string,
+    chatId: string,
+  ): Promise<{ code: string }> {
     const chat = await this.chatsRepository.findOne({ where: { id: chatId } });
     if (!chat) throw new NotFoundException('Chat no encontrado');
-    if (chat.receiver_id !== userId) throw new ForbiddenException('Solo el dueño del ítem genera el código');
+    if (chat.receiver_id !== userId)
+      throw new ForbiddenException('Solo el dueño del ítem genera el código');
     if (chat.status !== ChatStatus.ACEPTADO) {
-      throw new BadRequestException('El intercambio debe estar aceptado antes de generar el código');
+      throw new BadRequestException(
+        'El intercambio debe estar aceptado antes de generar el código',
+      );
     }
 
     const code = Math.floor(1000 + Math.random() * 9000).toString();
@@ -107,11 +146,19 @@ export class ChatsService {
     return { code };
   }
 
-  async confirmDelivery(userId: string, chatId: string, code: string): Promise<{ message: string }> {
+  async confirmDelivery(
+    userId: string,
+    chatId: string,
+    code: string,
+  ): Promise<{ message: string }> {
     const chat = await this.chatsRepository.findOne({ where: { id: chatId } });
     if (!chat) throw new NotFoundException('Chat no encontrado');
-    if (chat.sender_id !== userId) throw new ForbiddenException('Solo quien recibe el ítem confirma la entrega');
-    if (chat.confirmation_code !== code) throw new BadRequestException('Código incorrecto');
+    if (chat.sender_id !== userId)
+      throw new ForbiddenException(
+        'Solo quien recibe el ítem confirma la entrega',
+      );
+    if (chat.confirmation_code !== code)
+      throw new BadRequestException('Código incorrecto');
     if (new Date() > new Date(chat.confirmation_expires!)) {
       throw new BadRequestException('El código ha expirado');
     }
@@ -122,10 +169,14 @@ export class ChatsService {
     });
 
     await this.usersService.update(chat.receiver_id, {
-      exchanges_count: ((await this.usersService.findById(chat.receiver_id))?.exchanges_count ?? 0) + 1,
+      exchanges_count:
+        ((await this.usersService.findById(chat.receiver_id))
+          ?.exchanges_count ?? 0) + 1,
     });
 
-    return { message: 'Entrega confirmada. Por favor califica al otro usuario.' };
+    return {
+      message: 'Entrega confirmada. Por favor califica al otro usuario.',
+    };
   }
 
   async blockChat(userId: string, chatId: string): Promise<void> {
@@ -137,7 +188,9 @@ export class ChatsService {
 
     await this.chatsRepository.update(chatId, { status: ChatStatus.BLOQUEADO });
     const db = this.firebaseService.getDatabase();
-    await db.ref(`chats/${chat.firebase_chat_id}/metadata/status`).set(ChatStatus.BLOQUEADO);
+    await db
+      .ref(`chats/${chat.firebase_chat_id}/metadata/status`)
+      .set(ChatStatus.BLOQUEADO);
   }
 
   async getUserChats(userId: string): Promise<Chat[]> {
@@ -148,7 +201,7 @@ export class ChatsService {
     });
   }
 
-  async getMessages(userId: string, chatId: string): Promise<any> {
+  async getMessages(userId: string, chatId: string): Promise<FirebaseMsg[]> {
     const chat = await this.chatsRepository.findOne({ where: { id: chatId } });
     if (!chat) throw new NotFoundException('Chat no encontrado');
     if (chat.sender_id !== userId && chat.receiver_id !== userId) {
@@ -156,10 +209,13 @@ export class ChatsService {
     }
 
     const db = this.firebaseService.getDatabase();
-    const snapshot = await db.ref(`chats/${chat.firebase_chat_id}/messages`).once('value');
-    const messages = snapshot.val() || {};
-    return Object.values(messages).sort((a: any, b: any) =>
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    const snapshot = await db
+      .ref(`chats/${chat.firebase_chat_id}/messages`)
+      .once('value');
+    const raw = (snapshot.val() ?? {}) as Record<string, FirebaseMsg>;
+    return Object.values(raw).sort(
+      (a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
     );
   }
 }

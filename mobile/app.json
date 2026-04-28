@@ -3,6 +3,7 @@
     "name": "ShareCampus",
     "slug": "sharecampus",
     "version": "1.0.0",
+    "scheme": "sharecampus",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -11,12 +12,38 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ShareCampus necesita acceso a tus fotos para agregar imágenes a tus publicaciones.",
+          "cameraPermission": "ShareCampus necesita acceso a la cámara para tomar fotos."
+        }
+      ]
+    ],
     "ios": {
-      "supportsTablet": "com.sharecampus.ap",
-      "bundleIdentifier": "com.sharecampus.app"
+      "supportsTablet": false,
+      "bundleIdentifier": "com.sharecampus.app",
+      "infoPlist": {
+        "LSApplicationQueriesSchemes": ["sharecampus"],
+        "NSPhotoLibraryUsageDescription": "ShareCampus necesita acceso a tus fotos para agregar imágenes a tus publicaciones.",
+        "NSCameraUsageDescription": "ShareCampus necesita acceso a la cámara para tomar fotos."
+      }
     },
     "android": {
       "package": "com.sharecampus.app",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "sharecampus"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

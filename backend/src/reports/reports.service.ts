@@ -1,7 +1,12 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
-import { Report, ReportCategory, ReportTargetType, ReportStatus } from './report.entity';
+import {
+  Report,
+  ReportCategory,
+  ReportTargetType,
+  ReportStatus,
+} from './report.entity';
 import { UsersService } from '../users/users.service';
 
 @Injectable()
@@ -22,7 +27,10 @@ export class ReportsService {
     const existing = await this.reportsRepository.findOne({
       where: { reporter_id: reporterId, target_id, target_type },
     });
-    if (existing) throw new BadRequestException('Ya reportaste este contenido anteriormente');
+    if (existing)
+      throw new BadRequestException(
+        'Ya reportaste este contenido anteriormente',
+      );
 
     const report = this.reportsRepository.create({
       reporter_id: reporterId,
@@ -67,19 +75,25 @@ export class ReportsService {
     });
   }
 
-  async reviewReport(reportId: string, action: 'resolve' | 'discard'): Promise<Report> {
-    const newStatus = action === 'resolve' ? ReportStatus.RESUELTO : ReportStatus.DESCARTADO;
+  async reviewReport(
+    reportId: string,
+    action: 'resolve' | 'discard',
+  ): Promise<Report> {
+    const newStatus =
+      action === 'resolve' ? ReportStatus.RESUELTO : ReportStatus.DESCARTADO;
     await this.reportsRepository.update(reportId, {
       status: newStatus,
       action_taken: action === 'resolve',
     });
-    return this.reportsRepository.findOne({ where: { id: reportId } }) as Promise<Report>;
+    return this.reportsRepository.findOne({
+      where: { id: reportId },
+    }) as Promise<Report>;
   }
 
   async deactivateItem(itemId: string): Promise<void> {
     await this.reportsRepository.manager.query(
       `UPDATE items SET status = 'Entregado' WHERE id = $1`,
-      [itemId]
+      [itemId],
     );
   }
 

@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { ReportsService } from './reports.service';
 import { ReportCategory, ReportTargetType } from './report.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -11,7 +20,8 @@ export class ReportsController {
   @Post()
   createReport(
     @Request() req,
-    @Body() body: {
+    @Body()
+    body: {
       target_type: ReportTargetType;
       target_id: string;
       category: ReportCategory;

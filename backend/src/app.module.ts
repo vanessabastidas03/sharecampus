@@ -27,9 +27,10 @@ import { Report } from './reports/report.entity';
       url: process.env.DATABASE_URL,
       entities: [User, Item, Chat, DeviceToken, Wishlist, Report],
       synchronize: true,
-      ssl: process.env.NODE_ENV === 'production'
-        ? { rejectUnauthorized: false }
-        : false,
+      ssl:
+        process.env.NODE_ENV === 'production'
+          ? { rejectUnauthorized: false }
+          : false,
     }),
     FirebaseModule,
     UsersModule,

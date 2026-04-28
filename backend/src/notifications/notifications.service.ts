@@ -14,16 +14,29 @@ export class NotificationsService {
     private firebaseService: FirebaseService,
   ) {}
 
-  async registerToken(userId: string, token: string, platform: string): Promise<void> {
+  async registerToken(
+    userId: string,
+    token: string,
+    platform: string,
+  ): Promise<void> {
     const existing = await this.deviceTokenRepository.findOne({
       where: { user_id: userId, token },
     });
     if (!existing) {
-      await this.deviceTokenRepository.save({ user_id: userId, token, platform });
+      await this.deviceTokenRepository.save({
+        user_id: userId,
+        token,
+        platform,
+      });
     }
   }
 
-  async sendPushNotification(userId: string, title: string, body: string, data?: any): Promise<void> {
+  async sendPushNotification(
+    userId: string,
+    title: string,
+    body: string,
+    data?: any,
+  ): Promise<void> {
     const tokens = await this.deviceTokenRepository.find({
       where: { user_id: userId, is_active: true },
     });
@@ -33,7 +46,7 @@ export class NotificationsService {
       return;
     }
 
-    const messages = tokens.map(t => ({
+    const messages = tokens.map((t) => ({
       token: t.token,
       notification: { title, body },
       data: data ? { payload: JSON.stringify(data) } : undefined,
@@ -45,19 +58,23 @@ export class NotificationsService {
       } catch (error) {
         await this.deviceTokenRepository.update(
           { token: message.token },
-          { is_active: false }
+          { is_active: false },
         );
         await this.sendEmailFallback(userId, title, body);
       }
     }
   }
 
-  async notifyNewMessage(receiverId: string, senderName: string, itemTitle: string): Promise<void> {
+  async notifyNewMessage(
+    receiverId: string,
+    senderName: string,
+    itemTitle: string,
+  ): Promise<void> {
     await this.sendPushNotification(
       receiverId,
       '💬 Nuevo mensaje',
       `${senderName} te escribió sobre "${itemTitle}"`,
-      { type: 'new_message' }
+      { type: 'new_message' },
     );
   }
 
@@ -66,20 +83,28 @@ export class NotificationsService {
       ownerId,
       '👀 Alguien está interesado',
       `Alguien marcó interés en tu ítem "${itemTitle}"`,
-      { type: 'item_interest' }
+      { type: 'item_interest' },
     );
   }
 
-  async notifyWishlistMatch(userId: string, itemTitle: string, category: string): Promise<void> {
+  async notifyWishlistMatch(
+    userId: string,
+    itemTitle: string,
+    category: string,
+  ): Promise<void> {
     await this.sendPushNotification(
       userId,
       '🎯 ¡Encontramos algo para ti!',
       `Apareció "${itemTitle}" en ${category} que coincide con tu lista de deseos`,
-      { type: 'wishlist_match' }
+      { type: 'wishlist_match' },
     );
   }
 
-  private async sendEmailFallback(userId: string, title: string, body: string): Promise<void> {
+  private async sendEmailFallback(
+    userId: string,
+    title: string,
+    body: string,
+  ): Promise<void> {
     try {
       const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,

@@ -15,7 +15,12 @@ export class WishlistService {
     private notificationsService: NotificationsService,
   ) {}
 
-  async addToWishlist(userId: string, search_query: string, category?: string, campus?: string): Promise<Wishlist> {
+  async addToWishlist(
+    userId: string,
+    search_query: string,
+    category?: string,
+    campus?: string,
+  ): Promise<Wishlist> {
     const wishlist = this.wishlistRepository.create({
       user_id: userId,
       search_query,
@@ -35,7 +40,7 @@ export class WishlistService {
   async removeFromWishlist(userId: string, id: string): Promise<void> {
     await this.wishlistRepository.update(
       { id, user_id: userId },
-      { is_active: false }
+      { is_active: false },
     );
   }
 
@@ -47,11 +52,13 @@ export class WishlistService {
     for (const wishlist of wishlists) {
       if (wishlist.user_id === newItem.user_id) continue;
 
-      const titleMatch = newItem.title.toLowerCase().includes(
-        wishlist.search_query.toLowerCase()
-      );
-      const categoryMatch = !wishlist.category || wishlist.category === newItem.category;
-      const campusMatch = !wishlist.campus || wishlist.campus === newItem.campus;
+      const titleMatch = newItem.title
+        .toLowerCase()
+        .includes(wishlist.search_query.toLowerCase());
+      const categoryMatch =
+        !wishlist.category || wishlist.category === newItem.category;
+      const campusMatch =
+        !wishlist.campus || wishlist.campus === newItem.campus;
 
       if (titleMatch && categoryMatch && campusMatch) {
         await this.notificationsService.notifyWishlistMatch(

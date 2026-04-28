@@ -1,6 +1,11 @@
 import {
-  Entity, PrimaryGeneratedColumn, Column,
-  CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { User } from '../users/user.entity';
 
@@ -23,6 +28,7 @@ export enum ItemOfferType {
   PRESTAMO = 'Préstamo',
   INTERCAMBIO = 'Intercambio',
   DONACION = 'Donación',
+  ALQUILER = 'Alquiler',
 }
 
 @Entity('items')
@@ -50,6 +56,13 @@ export class Item {
 
   @Column({ type: 'text', nullable: true })
   campus: string | null;
+
+  // Precio de alquiler (solo aplica cuando offer_type = Alquiler)
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  rental_price!: number | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  rental_time_unit!: string | null;
 
   @Column({ default: false })
   is_reported: boolean;

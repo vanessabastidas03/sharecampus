@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
@@ -19,11 +19,15 @@ export class UsersService {
   }
 
   async findByVerificationToken(token: string): Promise<User | null> {
-    return this.usersRepository.findOne({ where: { verification_token: token } });
+    return this.usersRepository.findOne({
+      where: { verification_token: token },
+    });
   }
 
   async findByResetToken(token: string): Promise<User | null> {
-    return this.usersRepository.findOne({ where: { reset_password_token: token } });
+    return this.usersRepository.findOne({
+      where: { reset_password_token: token },
+    });
   }
 
   async create(data: Partial<User>): Promise<User> {
@@ -37,8 +41,15 @@ export class UsersService {
 
   async getProfile(id: string) {
     const user = await this.findById(id);
-    if (!user) return null;
-    const { password_hash, verification_token, reset_password_token, reset_password_expires, ...profile } = user;
+    if (!user) throw new NotFoundException('Perfil no encontrado');
+    // Excluimos campos sensibles antes de retornar
+    const {
+      password_hash: _ph,
+      verification_token: _vt,
+      reset_password_token: _rpt,
+      reset_password_expires: _rpe,
+      ...profile
+    } = user;
     return {
       ...profile,
       is_profile_complete: !!(user.full_name && user.faculty && user.semester),

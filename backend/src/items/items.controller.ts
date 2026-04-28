@@ -1,9 +1,25 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Request, UseInterceptors, UploadedFiles } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+  UseInterceptors,
+  UploadedFiles,
+} from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { ItemsService } from './items.service';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+
+type AuthReq = { user: { sub: string; email: string } };
 
 @Controller('items')
 export class ItemsController {
@@ -11,7 +27,7 @@ export class ItemsController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  create(@Request() req, @Body() dto: CreateItemDto) {
+  create(@Request() req: AuthReq, @Body() dto: CreateItemDto) {
     return this.itemsService.create(req.user.sub, dto);
   }
 
@@ -20,13 +36,14 @@ export class ItemsController {
     @Query('category') category?: string,
     @Query('campus') campus?: string,
     @Query('offer_type') offer_type?: string,
+    @Query('search') search?: string,
   ) {
-    return this.itemsService.findAll({ category, campus, offer_type });
+    return this.itemsService.findAll({ category, campus, offer_type, search });
   }
 
   @Get('my-items')
   @UseGuards(JwtAuthGuard)
-  findMyItems(@Request() req) {
+  findMyItems(@Request() req: AuthReq) {
     return this.itemsService.findByUser(req.user.sub);
   }
 
@@ -37,20 +54,30 @@ export class ItemsController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
-  update(@Request() req, @Param('id') id: string, @Body() dto: UpdateItemDto) {
+  update(
+    @Request() req: AuthReq,
+    @Param('id') id: string,
+    @Body() dto: UpdateItemDto,
+  ) {
     return this.itemsService.update(req.user.sub, id, dto);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
-  remove(@Request() req, @Param('id') id: string) {
+  remove(@Request() req: AuthReq, @Param('id') id: string) {
     return this.itemsService.remove(req.user.sub, id);
   }
 
   @Post(':id/photos')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FilesInterceptor('photos', 5, { storage: require('multer').memoryStorage() }))
-  uploadPhotos(@Request() req, @Param('id') id: string, @UploadedFiles() files: Express.Multer.File[]) {
+  @UseInterceptors(
+    FilesInterceptor('photos', 5, { storage: memoryStorage() }),
+  )
+  uploadPhotos(
+    @Request() req: AuthReq,
+    @Param('id') id: string,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
     return this.itemsService.uploadPhotos(req.user.sub, id, files);
   }
 

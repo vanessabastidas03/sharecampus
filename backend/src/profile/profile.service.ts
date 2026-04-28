@@ -18,58 +18,70 @@ export class ProfileService {
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
-    const updateData: any = {};
+    const updateData: {
+      full_name?: string;
+      faculty?: string;
+      semester?: number;
+      is_profile_complete?: boolean;
+    } = {};
+
     if (dto.full_name) updateData.full_name = dto.full_name;
     if (dto.faculty) updateData.faculty = dto.faculty;
     if (dto.semester) updateData.semester = dto.semester;
 
     const user = await this.usersService.findById(userId);
-    const isComplete = !!(
+    updateData.is_profile_complete = !!(
       (dto.full_name || user?.full_name) &&
       (dto.faculty || user?.faculty) &&
       (dto.semester || user?.semester)
     );
-    updateData.is_profile_complete = isComplete;
 
     await this.usersService.update(userId, updateData);
     return this.usersService.getProfile(userId);
   }
 
   async uploadPhoto(userId: string, file: Express.Multer.File) {
-    if (!file) throw new BadRequestException('No se proporcionó ninguna imagen');
+    if (!file)
+      throw new BadRequestException('No se proporcionó ninguna imagen');
 
     const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) throw new BadRequestException('La imagen no puede superar 5MB');
+    if (file.size > maxSize)
+      throw new BadRequestException('La imagen no puede superar 5MB');
 
     const allowed = ['image/jpeg', 'image/png', 'image/webp'];
     if (!allowed.includes(file.mimetype)) {
-      throw new BadRequestException('Solo se permiten imágenes JPG, PNG o WebP');
+      throw new BadRequestException(
+        'Solo se permiten imágenes JPG, PNG o WebP',
+      );
     }
 
-    const result = await new Promise<any>((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        {
-          folder: 'sharecampus/profiles',
-          transformation: [{ width: 400, height: 400, crop: 'fill' }],
-        },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      ).end(file.buffer);
+    const photoUrl = await new Promise<string>((resolve, reject) => {
+      cloudinary.uploader
+        .upload_stream(
+          {
+            folder: 'sharecampus/profiles',
+            transformation: [{ width: 400, height: 400, crop: 'fill' }],
+          },
+          (error, result) => {
+            if (error) reject(new Error(error.message));
+            else resolve((result as { secure_url: string }).secure_url);
+          },
+        )
+        .end(file.buffer);
     });
 
-    await this.usersService.update(userId, { photo_url: result.secure_url });
-    return { photo_url: result.secure_url };
+    await this.usersService.update(userId, { photo_url: photoUrl });
+    return { photo_url: photoUrl };
   }
 
   async addRating(targetUserId: string, rating: number) {
-    if (rating < 1 || rating > 5) throw new BadRequestException('La calificación debe ser entre 1 y 5');
+    if (rating < 1 || rating > 5)
+      throw new BadRequestException('La calificación debe ser entre 1 y 5');
     const user = await this.usersService.findById(targetUserId);
     if (!user) throw new BadRequestException('Usuario no encontrado');
 
     const newCount = user.rating_count + 1;
-    const newRating = ((user.rating * user.rating_count) + rating) / newCount;
+    const newRating = (user.rating * user.rating_count + rating) / newCount;
 
     await this.usersService.update(targetUserId, {
       rating: Math.round(newRating * 10) / 10,

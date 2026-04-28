@@ -1,41 +1,40 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import database from '@react-native-firebase/database';
+import React, { useEffect } from 'react';
+import { View, ActivityIndicator } from 'react-native';
+import { useFonts } from 'expo-font';
+import { Ionicons } from '@expo/vector-icons';
+import { AuthProvider } from './src/context/AuthContext';
+import AppNavigator from './src/navigation/AppNavigator';
+import { useAuth } from './src/context/AuthContext';
+import { usePushNotifications } from './src/hooks/usePushNotifications';
 
-export default function App() {
-  const [mensaje, setMensaje] = useState('Conectando...');
+function PushSetup() {
+  const { token } = useAuth();
+  const { register } = usePushNotifications();
 
   useEffect(() => {
-    const ref = database().ref('/test');
+    if (token) register();
+  }, [token]);
 
-    ref.set({ mensaje: 'Firebase conectado ✅', timestamp: Date.now() })
-      .then(() => console.log('Escrito en Firebase'))
-      .catch(err => console.error('Error escribiendo:', err));
-
-    ref.on('value', snapshot => {
-      const data = snapshot.val();
-      if (data) setMensaje(data.mensaje);
-    });
-
-    return () => ref.off('value');
-  }, []);
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.texto}>{mensaje}</Text>
-    </View>
-  );
+  return null;
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  texto: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-});
+export default function App() {
+  const [fontsLoaded] = useFonts({
+    ...Ionicons.font,
+  });
+
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F7F5FF' }}>
+        <ActivityIndicator color="#7C3AED" size="large" />
+      </View>
+    );
+  }
+
+  return (
+    <AuthProvider>
+      <PushSetup />
+      <AppNavigator />
+    </AuthProvider>
+  );
+}

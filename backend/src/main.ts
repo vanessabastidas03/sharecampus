@@ -1,3 +1,5 @@
+import './instrument'; // Sentry MUST be first — before any other import
+import 'reflect-metadata'; // Required for class-validator decorators
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
@@ -6,22 +8,28 @@ import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
-  app.use(helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false,
-  }));
+
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
   app.enableCors();
-  
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-  }));
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 
   const config = new DocumentBuilder()
     .setTitle('ShareCampus API')
-    .setDescription('API REST para la plataforma de economía colaborativa estudiantil')
+    .setDescription(
+      'API REST para la plataforma de economía colaborativa estudiantil',
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .build();

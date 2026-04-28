@@ -6,4 +6,6 @@ export class CreateItemDto {
   category: ItemCategory;
   offer_type: ItemOfferType;
   campus?: string;
+  rental_price?: number;
+  rental_time_unit?: string;
 }
