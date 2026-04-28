@@ -14,13 +14,14 @@ export interface Item {
   description: string | null;
   category: string;
   status: 'Disponible' | 'Reservado' | 'Entregado';
-  offer_type: 'Préstamo' | 'Intercambio' | 'Donación' | 'Alquiler';
+  offer_type: 'Préstamo' | 'Intercambio' | 'Donación' | 'Alquiler' | 'Vender';
   photos: string[];
   campus: string | null;
   ciudad: string | null;
   departamento: string | null;
   rental_price: number | null;
   rental_time_unit: string | null;
+  sale_price: number | null;
   user: UserProfile;
   user_id: string;
   created_at: string;
@@ -35,7 +36,7 @@ export const CATEGORIES = [
   'Otros',
 ] as const;
 
-export const OFFER_TYPES = ['Préstamo', 'Intercambio', 'Donación', 'Alquiler'] as const;
+export const OFFER_TYPES = ['Préstamo', 'Intercambio', 'Donación', 'Alquiler', 'Vender'] as const;
 
 export type Category = (typeof CATEGORIES)[number];
 export type OfferType = (typeof OFFER_TYPES)[number];

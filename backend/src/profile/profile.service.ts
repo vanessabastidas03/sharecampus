@@ -52,7 +52,7 @@ export class ProfileService {
     if (file.size > maxSize)
       throw new BadRequestException('La imagen no puede superar 5MB');
 
-    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
     if (!allowed.includes(file.mimetype)) {
       throw new BadRequestException(
         'Solo se permiten imágenes JPG, PNG o WebP',

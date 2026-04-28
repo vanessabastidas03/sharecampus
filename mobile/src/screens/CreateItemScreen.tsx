@@ -172,14 +172,24 @@ export default function CreateItemScreen({ navigation }: Props) {
   const [departmentSearch, setDepartmentSearch] = useState('');
   const [rentalPrice, setRentalPrice] = useState('');
   const [rentalTimeUnit, setRentalTimeUnit] = useState<string>('mes');
+  const [salePrice, setSalePrice] = useState('');
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [publishedItemId, setPublishedItemId] = useState<string | null>(null);
 
   const customCatAnim = useRef(new Animated.Value(0)).current;
   const rentalPriceAnim = useRef(new Animated.Value(0)).current;
+  const salePriceAnim = useRef(new Animated.Value(0)).current;
   const shimmerX = useRef(new Animated.Value(-200)).current;
   const photoScales = useRef<Animated.Value[]>([]).current;
+
+  // Prellenar ciudad y departamento desde el perfil del usuario
+  useEffect(() => {
+    api.get<import('../types').Profile>('/profile').then(({ data }) => {
+      if (data.departamento && !department) setDepartment(data.departamento);
+      if (data.ciudad && !city) setCity(data.ciudad);
+    }).catch(() => {});
+  }, []);
 
   // Shimmer loop when submitting
   useEffect(() => {
@@ -207,7 +217,12 @@ export default function CreateItemScreen({ navigation }: Props) {
       toValue: type === 'Alquiler' ? 1 : 0,
       useNativeDriver: false, tension: 80, friction: 10,
     }).start();
+    Animated.spring(salePriceAnim, {
+      toValue: type === 'Vender' ? 1 : 0,
+      useNativeDriver: false, tension: 80, friction: 10,
+    }).start();
     if (type !== 'Alquiler') setRentalPrice('');
+    if (type !== 'Vender') setSalePrice('');
   }
 
   const uniNames = UNIVERSITIES.map(u => u.name);
@@ -253,11 +268,17 @@ export default function CreateItemScreen({ navigation }: Props) {
         quality: 0.8,
       });
       if (!result.canceled) {
-        const picked: PickedPhoto[] = result.assets.map(a => ({
-          uri: a.uri,
-          mimeType: a.mimeType ?? 'image/jpeg',
-          fileName: a.fileName ?? `photo_${Date.now()}.jpg`,
-        }));
+        const picked: PickedPhoto[] = result.assets.map(a => {
+          const rawMime = (a.mimeType ?? '').toLowerCase();
+          const isHeic = rawMime.includes('heic') || rawMime.includes('heif');
+          return {
+            uri: a.uri,
+            mimeType: isHeic ? 'image/jpeg' : (a.mimeType ?? 'image/jpeg'),
+            fileName: a.fileName
+              ? (isHeic ? a.fileName.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg') : a.fileName)
+              : `photo_${Date.now()}.jpg`,
+          };
+        });
         const newPhotos = [...photos, ...picked].slice(0, MAX_PHOTOS);
         setPhotos(newPhotos);
         // Animate each new photo (scale from 0)
@@ -289,15 +310,16 @@ export default function CreateItemScreen({ navigation }: Props) {
       return 'Escribe tu categoría personalizada.';
     }
     if (!offerType) return 'Selecciona el tipo de oferta.';
+    if (offerType === 'Vender') {
+      const p = parseFloat(salePrice.replace(/[^0-9.]/g, ''));
+      if (!salePrice.trim() || isNaN(p) || p <= 0) return 'Ingresa el precio de venta.';
+    }
+    if (!department) return 'Selecciona el departamento de la publicación.';
+    if (!city) return 'Selecciona la ciudad de la publicación.';
     return null;
   }
 
-  async function handleSubmit() {
-    const error = validate();
-    if (error) {
-      Alert.alert('Datos incompletos', error);
-      return;
-    }
+  async function doSubmit(force = false) {
     setSubmitting(true);
     try {
       let finalDescription = description.trim();
@@ -306,7 +328,9 @@ export default function CreateItemScreen({ navigation }: Props) {
         finalDescription = finalDescription ? `${prefix}\n\n${finalDescription}` : prefix;
       }
 
-      const parsedPrice = rentalPrice.trim() ? parseFloat(rentalPrice.replace(/[^0-9.]/g, '')) : undefined;
+      const parsedRental = rentalPrice.trim() ? parseFloat(rentalPrice.replace(/[^0-9.]/g, '')) : undefined;
+      const parsedSale = salePrice.trim() ? parseFloat(salePrice.replace(/[^0-9.]/g, '')) : undefined;
+
       const { data: item } = await api.post('/items', {
         title: title.trim(),
         description: finalDescription || undefined,
@@ -315,8 +339,10 @@ export default function CreateItemScreen({ navigation }: Props) {
         campus: campus.trim() || undefined,
         ciudad: city.trim() || undefined,
         departamento: department.trim() || undefined,
-        rental_price: offerType === 'Alquiler' && parsedPrice ? parsedPrice : undefined,
-        rental_time_unit: offerType === 'Alquiler' && parsedPrice ? rentalTimeUnit : undefined,
+        rental_price: offerType === 'Alquiler' && parsedRental ? parsedRental : undefined,
+        rental_time_unit: offerType === 'Alquiler' && parsedRental ? rentalTimeUnit : undefined,
+        sale_price: offerType === 'Vender' && parsedSale ? parsedSale : undefined,
+        force,
       });
 
       if (photos.length > 0) {
@@ -336,10 +362,41 @@ export default function CreateItemScreen({ navigation }: Props) {
       setPublishedItemId(item.id);
     } catch (err: any) {
       const msg: string = err.response?.data?.message ?? 'Error al publicar. Intenta de nuevo.';
+      const isDuplicate =
+        typeof msg === 'string' && msg.toLowerCase().includes('similar');
+
+      if (isDuplicate) {
+        setSubmitting(false);
+        Alert.alert(
+          '¿Ítem duplicado?',
+          'Detectamos una publicación similar tuya que sigue disponible.',
+          [
+            {
+              text: 'Sí, es el mismo – Ver ítem',
+              onPress: () => {},
+            },
+            {
+              text: 'No, es diferente – Publicar igual',
+              onPress: () => doSubmit(true),
+            },
+          ],
+        );
+        return;
+      }
+
       Alert.alert('Error al publicar', msg);
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function handleSubmit() {
+    const error = validate();
+    if (error) {
+      Alert.alert('Datos incompletos', error);
+      return;
+    }
+    doSubmit(false);
   }
 
   // Show success screen
@@ -666,7 +723,6 @@ export default function CreateItemScreen({ navigation }: Props) {
                   Precio por período <Text style={styles.required}>*</Text>
                 </Text>
               </View>
-              {/* Input con prefijo COP $ */}
               <View style={styles.priceInputWrap}>
                 <Text style={styles.pricePrefixText}>COP $</Text>
                 <TextInput
@@ -679,12 +735,7 @@ export default function CreateItemScreen({ navigation }: Props) {
                   maxLength={12}
                 />
               </View>
-              {/* Selector de unidad de tiempo */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={{ marginTop: 10 }}
-              >
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
                 {RENTAL_UNITS.map(unit => (
                   <TouchableOpacity
                     key={unit}
@@ -697,6 +748,38 @@ export default function CreateItemScreen({ navigation }: Props) {
                   </TouchableOpacity>
                 ))}
               </ScrollView>
+            </View>
+          </Animated.View>
+
+          {/* ── PRECIO DE VENTA (visible solo cuando offerType=Vender) ── */}
+          <Animated.View
+            style={{
+              height: salePriceAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 110] }),
+              opacity: salePriceAnim,
+              overflow: 'hidden',
+            }}
+          >
+            <View style={[styles.section, { marginTop: 0 }]}>
+              <View style={styles.sectionHeader}>
+                <View style={[styles.sectionIcon, { backgroundColor: COLORS.primaryLight }]}>
+                  <Ionicons name="cash" size={16} color={COLORS.primary} />
+                </View>
+                <Text style={styles.sectionLabel}>
+                  Precio de venta <Text style={styles.required}>*</Text>
+                </Text>
+              </View>
+              <View style={[styles.priceInputWrap, { borderColor: COLORS.primary }]}>
+                <Text style={[styles.pricePrefixText, { color: COLORS.primary }]}>COP $</Text>
+                <TextInput
+                  style={styles.priceInput}
+                  value={salePrice}
+                  onChangeText={setSalePrice}
+                  placeholder="Ej: 50.000"
+                  placeholderTextColor={COLORS.textMuted}
+                  keyboardType="numeric"
+                  maxLength={12}
+                />
+              </View>
             </View>
           </Animated.View>
 
@@ -788,8 +871,9 @@ export default function CreateItemScreen({ navigation }: Props) {
               <View style={[styles.sectionIcon, { backgroundColor: '#DBEAFE' }]}>
                 <Ionicons name="business-outline" size={16} color="#2563EB" />
               </View>
-              <Text style={styles.sectionLabel}>Ciudad</Text>
-              <Text style={styles.optionalTag}>Opcional</Text>
+              <Text style={styles.sectionLabel}>
+                Ciudad <Text style={styles.required}>*</Text>
+              </Text>
             </View>
             <TouchableOpacity
               style={styles.campusInputWrap}
@@ -856,8 +940,9 @@ export default function CreateItemScreen({ navigation }: Props) {
               <View style={[styles.sectionIcon, { backgroundColor: '#EDE9FE' }]}>
                 <Ionicons name="map-outline" size={16} color={COLORS.primary} />
               </View>
-              <Text style={styles.sectionLabel}>Departamento</Text>
-              <Text style={styles.optionalTag}>Opcional</Text>
+              <Text style={styles.sectionLabel}>
+                Departamento <Text style={styles.required}>*</Text>
+              </Text>
             </View>
             <TouchableOpacity
               style={styles.campusInputWrap}

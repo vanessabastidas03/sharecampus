@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -50,6 +50,11 @@ function AddModal({ visible, onClose, onAdded }: AddModalProps) {
   const [ciudadModalVisible, setCiudadModalVisible] = useState(false);
   const [ciudadSearch, setCiudadSearch] = useState('');
 
+  // Refs para enfocar los inputs de búsqueda al abrir cada modal (sin autoFocus)
+  const uniSearchRef = useRef<TextInput>(null);
+  const deptSearchRef = useRef<TextInput>(null);
+  const ciudadSearchRef = useRef<TextInput>(null);
+
   const uniNames = UNIVERSITIES.map(u => u.name);
   const filteredUnis = uniSearch.trim()
     ? uniNames.filter(u => u.toLowerCase().includes(uniSearch.toLowerCase()))
@@ -76,7 +81,19 @@ function AddModal({ visible, onClose, onAdded }: AddModalProps) {
 
   async function handleAdd() {
     if (!query.trim()) {
-      Alert.alert('Campo requerido', 'Escribe qué quieres buscar.');
+      Alert.alert('Campo requerido', 'Escribe qué estás buscando.');
+      return;
+    }
+    if (!universidad) {
+      Alert.alert('Campo requerido', 'Selecciona la universidad.');
+      return;
+    }
+    if (!departamento) {
+      Alert.alert('Campo requerido', 'Selecciona el departamento.');
+      return;
+    }
+    if (!ciudad) {
+      Alert.alert('Campo requerido', 'Selecciona la ciudad.');
       return;
     }
     setSaving(true);
@@ -120,7 +137,6 @@ function AddModal({ visible, onClose, onAdded }: AddModalProps) {
                 onChangeText={setQuery}
                 placeholder="Ej: Cálculo diferencial, calculadora graficadora…"
                 placeholderTextColor="#9E9E9E"
-                autoFocus
                 maxLength={100}
               />
 
@@ -143,48 +159,54 @@ function AddModal({ visible, onClose, onAdded }: AddModalProps) {
                 ))}
               </ScrollView>
 
-              {/* Universidad */}
-              <Text style={modalStyles.label}>Universidad (opcional)</Text>
+              {/* Universidad — OBLIGATORIO */}
+              <Text style={modalStyles.label}>
+                Universidad <Text style={modalStyles.req}>*</Text>
+              </Text>
               <TouchableOpacity
-                style={modalStyles.selector}
+                style={[modalStyles.selector, !universidad && modalStyles.selectorEmpty]}
                 onPress={() => { setUniSearch(''); setUniModalVisible(true); }}
                 activeOpacity={0.8}
               >
-                <Ionicons name="school-outline" size={15} color={COLORS.textMuted} style={{ marginRight: 8 }} />
+                <Ionicons name="school-outline" size={15} color={universidad ? COLORS.primary : COLORS.textMuted} style={{ marginRight: 8 }} />
                 <Text style={[modalStyles.selectorText, universidad && { color: '#1A1A1A' }]}>
-                  {universidad || 'Cualquier universidad'}
+                  {universidad || 'Selecciona universidad *'}
                 </Text>
                 {universidad
                   ? <TouchableOpacity onPress={() => setUniversidad('')} hitSlop={8}><Ionicons name="close-circle" size={16} color={COLORS.textMuted} /></TouchableOpacity>
                   : <Ionicons name="chevron-down" size={15} color={COLORS.textMuted} />}
               </TouchableOpacity>
 
-              {/* Departamento */}
-              <Text style={modalStyles.label}>Departamento (opcional)</Text>
+              {/* Departamento — OBLIGATORIO */}
+              <Text style={modalStyles.label}>
+                Departamento <Text style={modalStyles.req}>*</Text>
+              </Text>
               <TouchableOpacity
-                style={modalStyles.selector}
+                style={[modalStyles.selector, !departamento && modalStyles.selectorEmpty]}
                 onPress={() => { setDeptSearch(''); setDeptModalVisible(true); }}
                 activeOpacity={0.8}
               >
-                <Ionicons name="map-outline" size={15} color={COLORS.textMuted} style={{ marginRight: 8 }} />
+                <Ionicons name="map-outline" size={15} color={departamento ? COLORS.primary : COLORS.textMuted} style={{ marginRight: 8 }} />
                 <Text style={[modalStyles.selectorText, departamento && { color: '#1A1A1A' }]}>
-                  {departamento || 'Cualquier departamento'}
+                  {departamento || 'Selecciona departamento *'}
                 </Text>
                 {departamento
                   ? <TouchableOpacity onPress={() => { setDepartamento(''); setCiudad(''); }} hitSlop={8}><Ionicons name="close-circle" size={16} color={COLORS.textMuted} /></TouchableOpacity>
                   : <Ionicons name="chevron-down" size={15} color={COLORS.textMuted} />}
               </TouchableOpacity>
 
-              {/* Ciudad */}
-              <Text style={modalStyles.label}>Ciudad (opcional)</Text>
+              {/* Ciudad — OBLIGATORIO */}
+              <Text style={modalStyles.label}>
+                Ciudad <Text style={modalStyles.req}>*</Text>
+              </Text>
               <TouchableOpacity
-                style={modalStyles.selector}
+                style={[modalStyles.selector, !ciudad && modalStyles.selectorEmpty]}
                 onPress={() => { setCiudadSearch(''); setCiudadModalVisible(true); }}
                 activeOpacity={0.8}
               >
-                <Ionicons name="location-outline" size={15} color={COLORS.textMuted} style={{ marginRight: 8 }} />
+                <Ionicons name="location-outline" size={15} color={ciudad ? COLORS.primary : COLORS.textMuted} style={{ marginRight: 8 }} />
                 <Text style={[modalStyles.selectorText, ciudad && { color: '#1A1A1A' }]}>
-                  {ciudad || 'Cualquier ciudad'}
+                  {ciudad || 'Selecciona ciudad *'}
                 </Text>
                 {ciudad
                   ? <TouchableOpacity onPress={() => setCiudad('')} hitSlop={8}><Ionicons name="close-circle" size={16} color={COLORS.textMuted} /></TouchableOpacity>
@@ -212,7 +234,13 @@ function AddModal({ visible, onClose, onAdded }: AddModalProps) {
       </Modal>
 
       {/* Modal universidades */}
-      <Modal visible={uniModalVisible} animationType="slide" transparent onRequestClose={() => setUniModalVisible(false)}>
+      <Modal
+        visible={uniModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setUniModalVisible(false)}
+        onShow={() => setTimeout(() => uniSearchRef.current?.focus(), 100)}
+      >
         <View style={modalStyles.subOverlay}>
           <View style={modalStyles.subSheet}>
             <View style={modalStyles.subHeader}>
@@ -224,12 +252,12 @@ function AddModal({ visible, onClose, onAdded }: AddModalProps) {
             <View style={modalStyles.subSearch}>
               <Ionicons name="search" size={14} color={COLORS.textMuted} style={{ marginRight: 6 }} />
               <TextInput
+                ref={uniSearchRef}
                 style={modalStyles.subSearchInput}
                 value={uniSearch}
                 onChangeText={setUniSearch}
                 placeholder="Buscar universidad..."
                 placeholderTextColor={COLORS.textMuted}
-                autoFocus
               />
             </View>
             <FlatList
@@ -253,7 +281,13 @@ function AddModal({ visible, onClose, onAdded }: AddModalProps) {
       </Modal>
 
       {/* Modal departamentos */}
-      <Modal visible={deptModalVisible} animationType="slide" transparent onRequestClose={() => setDeptModalVisible(false)}>
+      <Modal
+        visible={deptModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setDeptModalVisible(false)}
+        onShow={() => setTimeout(() => deptSearchRef.current?.focus(), 100)}
+      >
         <View style={modalStyles.subOverlay}>
           <View style={modalStyles.subSheet}>
             <View style={modalStyles.subHeader}>
@@ -265,12 +299,12 @@ function AddModal({ visible, onClose, onAdded }: AddModalProps) {
             <View style={modalStyles.subSearch}>
               <Ionicons name="search" size={14} color={COLORS.textMuted} style={{ marginRight: 6 }} />
               <TextInput
+                ref={deptSearchRef}
                 style={modalStyles.subSearchInput}
                 value={deptSearch}
                 onChangeText={setDeptSearch}
                 placeholder="Buscar departamento..."
                 placeholderTextColor={COLORS.textMuted}
-                autoFocus
               />
             </View>
             <FlatList
@@ -294,7 +328,13 @@ function AddModal({ visible, onClose, onAdded }: AddModalProps) {
       </Modal>
 
       {/* Modal ciudades */}
-      <Modal visible={ciudadModalVisible} animationType="slide" transparent onRequestClose={() => setCiudadModalVisible(false)}>
+      <Modal
+        visible={ciudadModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setCiudadModalVisible(false)}
+        onShow={() => setTimeout(() => ciudadSearchRef.current?.focus(), 100)}
+      >
         <View style={modalStyles.subOverlay}>
           <View style={modalStyles.subSheet}>
             <View style={modalStyles.subHeader}>
@@ -308,12 +348,12 @@ function AddModal({ visible, onClose, onAdded }: AddModalProps) {
             <View style={modalStyles.subSearch}>
               <Ionicons name="search" size={14} color={COLORS.textMuted} style={{ marginRight: 6 }} />
               <TextInput
+                ref={ciudadSearchRef}
                 style={modalStyles.subSearchInput}
                 value={ciudadSearch}
                 onChangeText={setCiudadSearch}
                 placeholder="Buscar ciudad..."
                 placeholderTextColor={COLORS.textMuted}
-                autoFocus
               />
             </View>
             <FlatList
@@ -369,6 +409,7 @@ const modalStyles = StyleSheet.create({
     borderWidth: 1.5, borderColor: '#CBD5E1',
     borderRadius: 10, paddingHorizontal: 13, paddingVertical: 11,
   },
+  selectorEmpty: { borderColor: '#F87171', borderStyle: 'dashed' },
   selectorText: { flex: 1, fontSize: 14, color: '#9E9E9E' },
   chipsRow: { gap: 8, paddingVertical: 2 },
   chip: {
@@ -529,7 +570,11 @@ export default function WishlistScreen({ navigation }: Props) {
       <StatusBar barStyle="light-content" backgroundColor={PRIMARY} />
 
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBack}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.headerBack}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
           <Ionicons name="arrow-back" size={20} color="rgba(255,255,255,0.9)" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Lista de deseos</Text>

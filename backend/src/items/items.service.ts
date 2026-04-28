@@ -50,29 +50,30 @@ export class ItemsService {
   }
 
   async create(userId: string, dto: CreateItemDto): Promise<Item> {
-    // Solo bloquea duplicados del mismo usuario, no de toda la plataforma
-    const dupQuery = this.itemsRepository
-      .createQueryBuilder('item')
-      .where('LOWER(item.title) = LOWER(:title)', { title: dto.title })
-      .andWhere('item.status = :status', { status: ItemStatus.DISPONIBLE })
-      .andWhere('item.user_id = :userId', { userId });
+    if (!dto.force) {
+      const dupQuery = this.itemsRepository
+        .createQueryBuilder('item')
+        .where('LOWER(item.title) = LOWER(:title)', { title: dto.title })
+        .andWhere('item.status = :status', { status: ItemStatus.DISPONIBLE })
+        .andWhere('item.user_id = :userId', { userId });
 
-    if (dto.campus) {
-      dupQuery.andWhere('item.campus = :campus', { campus: dto.campus });
-    } else {
-      dupQuery.andWhere('item.campus IS NULL');
+      if (dto.campus) {
+        dupQuery.andWhere('item.campus = :campus', { campus: dto.campus });
+      } else {
+        dupQuery.andWhere('item.campus IS NULL');
+      }
+
+      const duplicate = await dupQuery.getOne();
+      if (duplicate) {
+        throw new BadRequestException(
+          'Ya existe un ítem similar disponible en este campus. ¿Es el mismo?',
+        );
+      }
     }
 
-    const duplicate = await dupQuery.getOne();
-
-    if (duplicate) {
-      throw new BadRequestException(
-        'Ya existe un ítem similar disponible en este campus. ¿Es el mismo?',
-      );
-    }
-
+    const { force: _force, ...itemData } = dto;
     const item = this.itemsRepository.create({
-      ...dto,
+      ...itemData,
       user_id: userId,
       photos: [],
     });
@@ -192,7 +193,7 @@ export class ItemsService {
     if (item.photos.length + files.length > 5)
       throw new BadRequestException('No puedes subir más de 5 fotos por ítem');
 
-    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
     const maxSize = 5 * 1024 * 1024;
     const uploadedUrls: string[] = [];
 

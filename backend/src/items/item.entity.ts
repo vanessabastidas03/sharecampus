@@ -29,6 +29,7 @@ export enum ItemOfferType {
   INTERCAMBIO = 'Intercambio',
   DONACION = 'Donación',
   ALQUILER = 'Alquiler',
+  VENDER = 'Vender',
 }
 
 @Entity('items')
@@ -69,6 +70,10 @@ export class Item {
 
   @Column({ type: 'varchar', nullable: true })
   rental_time_unit!: string | null;
+
+  // Precio de venta (solo aplica cuando offer_type = Vender)
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true, default: null })
+  sale_price: number | null = null;
 
   @Column({ default: false })
   is_reported: boolean;

@@ -37,6 +37,7 @@ export const OFFER_CONFIG: Record<string, { color: string; bg: string; emoji: st
   'Intercambio': { color: '#FF9800', bg: '#FFF3E0', emoji: '🔄', icon: 'repeat' },
   'Donación':    { color: '#E91E63', bg: '#FCE4EC', emoji: '🎁', icon: 'heart' },
   'Alquiler':    { color: '#4CAF50', bg: '#E8F5E9', emoji: '🔑', icon: 'key' },
+  'Vender':      { color: '#7C3AED', bg: '#EDE9FE', emoji: '💰', icon: 'cash' },
 };
 
 export const STATUS_CFG: Record<string, { color: string; bg: string }> = {

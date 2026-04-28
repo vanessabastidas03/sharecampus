@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsNumber, Min } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsNumber, IsBoolean, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ItemCategory, ItemOfferType } from '../item.entity';
 
@@ -37,4 +37,14 @@ export class CreateItemDto {
   @IsOptional()
   @IsString()
   rental_time_unit?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  sale_price?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  force?: boolean;
 }
