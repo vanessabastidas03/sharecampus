@@ -14,13 +14,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NavigationProp, useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { MainStackParamList } from '../navigation/AppNavigator';
 import api from '../services/api';
 import { Item, ITEM_STATUSES, STATUS_COLOR, ItemStatus } from '../types';
+import { COLORS, SHADOWS } from '../theme';
 
 type Props = { navigation: NavigationProp<MainStackParamList> };
 
-const BLUE = '#1E4D8C';
+const PRIMARY = COLORS.primary;
 
 interface StatusModalProps {
   visible: boolean;
@@ -47,10 +49,10 @@ function StatusModal({ visible, current, onSelect, onClose }: StatusModalProps) 
                 activeOpacity={0.7}
               >
                 <View style={[modalStyles.dot, { backgroundColor: color }]} />
-                <Text style={[modalStyles.optionText, isActive && { color: BLUE, fontWeight: '700' }]}>
+                <Text style={[modalStyles.optionText, isActive && { color: PRIMARY, fontWeight: '700' }]}>
                   {status}
                 </Text>
-                {isActive && <Text style={modalStyles.checkmark}>✓</Text>}
+                {isActive && <Ionicons name="checkmark" size={16} color={PRIMARY} />}
               </TouchableOpacity>
             );
           })}
@@ -83,10 +85,9 @@ const modalStyles = StyleSheet.create({
     gap: 10,
     marginBottom: 4,
   },
-  optionActive: { backgroundColor: '#E8EFF9' },
+  optionActive: { backgroundColor: COLORS.primaryLight },
   dot: { width: 10, height: 10, borderRadius: 5 },
   optionText: { flex: 1, fontSize: 15, color: '#333' },
-  checkmark: { color: BLUE, fontSize: 16, fontWeight: '700' },
   cancelBtn: {
     marginTop: 8,
     paddingVertical: 12,
@@ -171,7 +172,7 @@ export default function MyItemsScreen({ navigation }: Props) {
           <Image source={{ uri: photo }} style={styles.cardImage} resizeMode="cover" />
         ) : (
           <View style={[styles.cardImage, styles.cardImagePlaceholder]}>
-            <Text style={{ fontSize: 26 }}>📦</Text>
+            <Ionicons name="cube-outline" size={28} color={COLORS.primary} />
           </View>
         )}
 
@@ -186,7 +187,6 @@ export default function MyItemsScreen({ navigation }: Props) {
             </View>
           </View>
 
-          {/* Status - tappable */}
           <TouchableOpacity
             style={[styles.statusBtn, { backgroundColor: statusColor + '18' }]}
             onPress={() => setModalItem(item)}
@@ -198,19 +198,18 @@ export default function MyItemsScreen({ navigation }: Props) {
               <>
                 <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
                 <Text style={[styles.statusText, { color: statusColor }]}>{item.status}</Text>
-                <Text style={[styles.statusEditIcon, { color: statusColor }]}>▾</Text>
+                <Ionicons name="chevron-down" size={12} color={statusColor} />
               </>
             )}
           </TouchableOpacity>
         </View>
 
-        {/* Delete button */}
         <TouchableOpacity
           style={styles.deleteBtn}
           onPress={() => confirmDelete(item)}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={styles.deleteIcon}>🗑️</Text>
+          <Ionicons name="trash-outline" size={20} color="#D32F2F" />
         </TouchableOpacity>
       </TouchableOpacity>
     );
@@ -218,18 +217,18 @@ export default function MyItemsScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={BLUE} />
+      <StatusBar barStyle="light-content" backgroundColor={PRIMARY} />
 
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBack}>
-          <Text style={styles.headerBackText}>‹ Volver</Text>
+          <Ionicons name="arrow-back" size={20} color="rgba(255,255,255,0.9)" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Mis publicaciones</Text>
-        <View style={{ width: 80 }} />
+        <View style={{ width: 44 }} />
       </View>
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 60 }} color={BLUE} size="large" />
+        <ActivityIndicator style={{ marginTop: 60 }} color={PRIMARY} size="large" />
       ) : (
         <FlatList
           data={items}
@@ -240,23 +239,26 @@ export default function MyItemsScreen({ navigation }: Props) {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => fetchItems(true)}
-              colors={[BLUE]}
-              tintColor={BLUE}
+              colors={[PRIMARY]}
+              tintColor={PRIMARY}
             />
           }
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Text style={{ fontSize: 52, marginBottom: 12 }}>📭</Text>
+              <View style={styles.emptyIconWrap}>
+                <Ionicons name="cube-outline" size={56} color={PRIMARY} />
+              </View>
               <Text style={styles.emptyTitle}>Sin publicaciones</Text>
               <Text style={styles.emptySubtitle}>
-                Aún no has publicado ningún ítem. ¡Sé el primero en compartir!
+                Comparte algo con tu comunidad universitaria
               </Text>
               <TouchableOpacity
                 style={styles.createBtn}
                 onPress={() => navigation.navigate('CreateItem')}
                 activeOpacity={0.85}
               >
-                <Text style={styles.createBtnText}>Publicar ítem</Text>
+                <Ionicons name="add-circle-outline" size={18} color="#fff" style={{ marginRight: 6 }} />
+                <Text style={styles.createBtnText}>Publicar mi primer ítem</Text>
               </TouchableOpacity>
             </View>
           }
@@ -276,34 +278,32 @@ export default function MyItemsScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F5F7FA' },
+  safe: { flex: 1, backgroundColor: COLORS.bg },
   header: {
-    backgroundColor: BLUE,
+    backgroundColor: PRIMARY,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
-  headerBack: { width: 80 },
-  headerBackText: { color: 'rgba(255,255,255,0.9)', fontSize: 15 },
+  headerBack: {
+    width: 44, height: 36,
+    justifyContent: 'center',
+  },
   headerTitle: { color: '#fff', fontSize: 16, fontWeight: '700' },
   listContent: { padding: 14, paddingBottom: 40 },
   card: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    borderRadius: 14,
+    borderRadius: 16,
     marginBottom: 10,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    ...SHADOWS.small,
   },
   cardImage: { width: 90, height: 100 },
   cardImagePlaceholder: {
-    backgroundColor: '#EEF2F9',
+    backgroundColor: COLORS.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -311,12 +311,12 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 14, fontWeight: '700', color: '#1A1A1A', lineHeight: 19 },
   cardMeta: { flexDirection: 'row', gap: 6, marginTop: 4 },
   categoryBadge: {
-    backgroundColor: '#E8EFF9',
+    backgroundColor: COLORS.primaryLight,
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
-  categoryBadgeText: { fontSize: 11, color: BLUE, fontWeight: '600' },
+  categoryBadgeText: { fontSize: 11, color: PRIMARY, fontWeight: '600' },
   offerBadge: {
     backgroundColor: '#FFF3E0',
     borderRadius: 6,
@@ -339,21 +339,28 @@ const styles = StyleSheet.create({
   },
   statusDot: { width: 7, height: 7, borderRadius: 4 },
   statusText: { fontSize: 11, fontWeight: '700' },
-  statusEditIcon: { fontSize: 10 },
   deleteBtn: {
     padding: 12,
     justifyContent: 'flex-start',
     alignItems: 'center',
   },
-  deleteIcon: { fontSize: 18 },
   emptyBox: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 32 },
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: '#333', marginBottom: 6 },
+  emptyIconWrap: {
+    width: 100, height: 100, borderRadius: 50,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: 20,
+  },
+  emptyTitle: { fontSize: 18, fontWeight: '800', color: '#1E1B4B', marginBottom: 8 },
   emptySubtitle: { fontSize: 13, color: '#888', textAlign: 'center', lineHeight: 20, marginBottom: 24 },
   createBtn: {
-    backgroundColor: BLUE,
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 28,
+    backgroundColor: PRIMARY,
+    borderRadius: 14,
+    paddingVertical: 13,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    ...SHADOWS.button,
   },
-  createBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  createBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 });

@@ -344,34 +344,25 @@ export default function EditProfileScreen({ navigation }: Props) {
             </View>
 
             <Text style={[styles.fieldLabel, { marginTop: 14 }]}>Semestre</Text>
-            <View
-              style={[
-                styles.inputWrap,
-                styles.inputWrapNarrow,
-                focusedField === 'semester' && styles.inputWrapFocused,
-                !!fieldErrors.semester && styles.inputWrapError,
-              ]}
-            >
-              <Ionicons
-                name="calendar-outline"
-                size={16}
-                color={focusedField === 'semester' ? COLORS.primary : COLORS.textMuted}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                value={semester}
-                onChangeText={t => {
-                  setSemester(t.replace(/[^0-9]/g, '').slice(0, 2));
-                  setFieldErrors(p => ({ ...p, semester: undefined }));
-                }}
-                placeholder="1 – 12"
-                placeholderTextColor={COLORS.textMuted}
-                keyboardType="numeric"
-                maxLength={2}
-                onFocus={() => setFocusedField('semester')}
-                onBlur={() => setFocusedField(null)}
-              />
+            <View style={styles.semesterGrid}>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map(n => {
+                const active = semester === String(n);
+                return (
+                  <TouchableOpacity
+                    key={n}
+                    style={[styles.semesterChip, active && styles.semesterChipActive]}
+                    onPress={() => {
+                      setSemester(String(n));
+                      setFieldErrors(p => ({ ...p, semester: undefined }));
+                    }}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={[styles.semesterChipText, active && styles.semesterChipTextActive]}>
+                      {n}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
             {!!fieldErrors.semester && (
               <Text style={styles.fieldError}>{fieldErrors.semester}</Text>
@@ -581,5 +572,24 @@ const styles = StyleSheet.create({
   disclaimer: {
     fontSize: 11, color: COLORS.textMuted,
     textAlign: 'center', marginTop: 16, marginHorizontal: 28, lineHeight: 17,
+  },
+
+  semesterGrid: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2,
+  },
+  semesterChip: {
+    width: 44, height: 44, borderRadius: 12,
+    borderWidth: 1.5, borderColor: COLORS.border,
+    backgroundColor: '#F7F5FF',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  semesterChipActive: {
+    backgroundColor: COLORS.primary, borderColor: COLORS.primary,
+  },
+  semesterChipText: {
+    fontSize: 15, fontWeight: '700', color: COLORS.textMuted,
+  },
+  semesterChipTextActive: {
+    color: '#fff',
   },
 });

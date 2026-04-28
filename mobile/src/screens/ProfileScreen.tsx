@@ -147,10 +147,14 @@ export default function ProfileScreen({ navigation }: Props) {
         });
         if (isTimeout) {
           setErrorMsg('El servidor tardó demasiado. Espera un momento y reintenta.');
-        } else if (status === 401) {
-          setErrorMsg('Sesión expirada. Cierra sesión e inicia de nuevo.');
-        } else if (status === 404) {
-          setErrorMsg('Perfil no encontrado. Intenta cerrar sesión y volver a entrar.');
+        } else if (status === 401 || status === 404) {
+          // Sesión inválida o usuario no existe en la BD → cerrar sesión automáticamente
+          Alert.alert(
+            'Sesión inválida',
+            'Tu sesión no es válida o el usuario no existe. Inicia sesión de nuevo.',
+            [{ text: 'Aceptar', onPress: logout }],
+          );
+          return;
         } else if (!err?.response) {
           setErrorMsg('Sin conexión. Verifica tu red e intenta de nuevo.');
         } else {
@@ -244,7 +248,7 @@ export default function ProfileScreen({ navigation }: Props) {
               <Text style={styles.statLabel}>{profile.rating_count} reseñas</Text>
             </View>
             <View style={[styles.statCard, { backgroundColor: COLORS.amberLight }]}>
-              <Text style={styles.statEmoji}>📦</Text>
+              <Ionicons name="swap-horizontal" size={28} color={COLORS.amber} />
               <Text style={[styles.statValue, { color: COLORS.amber }]}>
                 {profile.exchanges_count}
               </Text>

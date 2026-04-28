@@ -468,10 +468,10 @@ const styles = StyleSheet.create({
   searchIcon: { fontSize: 15, marginRight: 8 },
   searchInput: { flex: 1, fontSize: 15, color: '#fff' },
   clearIcon: { fontSize: 14, color: 'rgba(255,255,255,0.7)', paddingLeft: 8 },
-  filterRow: { backgroundColor: COLORS.card, maxHeight: 52 },
+  filterRow: { backgroundColor: COLORS.card, maxHeight: 56 },
   filterRow2: {
     backgroundColor: COLORS.card,
-    maxHeight: 46,
+    maxHeight: 56,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.divider,
   },

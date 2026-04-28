@@ -17,15 +17,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NavigationProp, useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { MainStackParamList } from '../navigation/AppNavigator';
 import api from '../services/api';
 import { WishlistItem, CATEGORIES } from '../types';
+import { COLORS, SHADOWS } from '../theme';
 
 type Props = { navigation: NavigationProp<MainStackParamList> };
 
-const BLUE = '#1E4D8C';
-
-// ─── Add form modal ────────────────────────────────────────────────────────────
+const PRIMARY = COLORS.primary;
 
 interface AddModalProps {
   visible: boolean;
@@ -79,19 +79,19 @@ function AddModal({ visible, onClose, onAdded }: AddModalProps) {
           <Text style={modalStyles.title}>Agregar a lista de deseos</Text>
 
           <Text style={modalStyles.label}>
-            ¿Qué estás buscando? <Text style={modalStyles.req}>*</Text>
+            Que estas buscando? <Text style={modalStyles.req}>*</Text>
           </Text>
           <TextInput
             style={modalStyles.input}
             value={query}
             onChangeText={setQuery}
-            placeholder="Ej: Cálculo diferencial, calculadora graficadora…"
+            placeholder="Ej: Calculo diferencial, calculadora graficadora…"
             placeholderTextColor="#9E9E9E"
             autoFocus
             maxLength={100}
           />
 
-          <Text style={modalStyles.label}>Categoría (opcional)</Text>
+          <Text style={modalStyles.label}>Categoria (opcional)</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -173,7 +173,7 @@ const modalStyles = StyleSheet.create({
     borderColor: '#CBD5E1',
     backgroundColor: '#fff',
   },
-  chipActive: { backgroundColor: BLUE, borderColor: BLUE },
+  chipActive: { backgroundColor: PRIMARY, borderColor: PRIMARY },
   chipText: { fontSize: 13, color: '#555' },
   chipTextActive: { color: '#fff', fontWeight: '700' },
   actions: { flexDirection: 'row', gap: 10, marginTop: 22 },
@@ -188,7 +188,7 @@ const modalStyles = StyleSheet.create({
   cancelText: { color: '#666', fontSize: 14 },
   addBtn: {
     flex: 2,
-    backgroundColor: BLUE,
+    backgroundColor: PRIMARY,
     borderRadius: 10,
     paddingVertical: 13,
     alignItems: 'center',
@@ -196,8 +196,6 @@ const modalStyles = StyleSheet.create({
   addBtnDisabled: { opacity: 0.6 },
   addBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 });
-
-// ─── Main screen ───────────────────────────────────────────────────────────────
 
 export default function WishlistScreen({ navigation }: Props) {
   const [items, setItems] = useState<WishlistItem[]>([]);
@@ -225,7 +223,7 @@ export default function WishlistScreen({ navigation }: Props) {
 
   function confirmDelete(item: WishlistItem) {
     Alert.alert(
-      'Eliminar búsqueda',
+      'Eliminar busqueda',
       `¿Eliminar "${item.search_query}" de tu lista de deseos?`,
       [
         { text: 'Cancelar', style: 'cancel' },
@@ -253,7 +251,7 @@ export default function WishlistScreen({ navigation }: Props) {
     return (
       <View style={styles.card}>
         <View style={styles.cardLeft}>
-          <Text style={styles.cardIcon}>🔍</Text>
+          <Ionicons name="search" size={17} color={PRIMARY} />
         </View>
         <View style={styles.cardBody}>
           <Text style={styles.cardQuery}>{item.search_query}</Text>
@@ -264,11 +262,14 @@ export default function WishlistScreen({ navigation }: Props) {
               </View>
             )}
             {item.campus && (
-              <Text style={styles.campusText}>📍 {item.campus}</Text>
+              <View style={styles.campusBadge}>
+                <Ionicons name="location-outline" size={10} color={PRIMARY} />
+                <Text style={styles.campusText}> {item.campus}</Text>
+              </View>
             )}
           </View>
           {!item.category && !item.campus && (
-            <Text style={styles.anyText}>Cualquier categoría y campus</Text>
+            <Text style={styles.anyText}>Cualquier categoria y campus</Text>
           )}
         </View>
         <TouchableOpacity
@@ -279,7 +280,7 @@ export default function WishlistScreen({ navigation }: Props) {
         >
           {isDeleting
             ? <ActivityIndicator size="small" color="#D32F2F" />
-            : <Text style={styles.deleteIcon}>🗑️</Text>}
+            : <Ionicons name="trash-outline" size={20} color="#D32F2F" />}
         </TouchableOpacity>
       </View>
     );
@@ -287,26 +288,27 @@ export default function WishlistScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={BLUE} />
+      <StatusBar barStyle="light-content" backgroundColor={PRIMARY} />
 
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBack}>
-          <Text style={styles.headerBackText}>‹ Volver</Text>
+          <Ionicons name="arrow-back" size={20} color="rgba(255,255,255,0.9)" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Lista de deseos</Text>
         <TouchableOpacity style={styles.addIconBtn} onPress={() => setShowAdd(true)}>
-          <Text style={styles.addIconText}>+</Text>
+          <Ionicons name="add" size={22} color="#fff" />
         </TouchableOpacity>
       </View>
 
       <View style={styles.infoBar}>
+        <Ionicons name="notifications-outline" size={14} color={PRIMARY} style={{ marginRight: 6 }} />
         <Text style={styles.infoText}>
-          📣 Te notificaremos cuando aparezca algo que coincida con tus búsquedas
+          Te notificaremos cuando aparezca algo que coincida con tus busquedas
         </Text>
       </View>
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 60 }} color={BLUE} size="large" />
+        <ActivityIndicator style={{ marginTop: 60 }} color={PRIMARY} size="large" />
       ) : (
         <FlatList
           data={items}
@@ -317,23 +319,26 @@ export default function WishlistScreen({ navigation }: Props) {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => fetchItems(true)}
-              colors={[BLUE]}
-              tintColor={BLUE}
+              colors={[PRIMARY]}
+              tintColor={PRIMARY}
             />
           }
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Text style={styles.emptyEmoji}>🎯</Text>
-              <Text style={styles.emptyTitle}>Sin búsquedas guardadas</Text>
+              <View style={styles.emptyIconWrap}>
+                <Ionicons name="bookmark-outline" size={56} color={PRIMARY} />
+              </View>
+              <Text style={styles.emptyTitle}>Sin busquedas guardadas</Text>
               <Text style={styles.emptySubtitle}>
-                Agrega búsquedas y te avisaremos cuando alguien publique algo que coincida.
+                Agrega busquedas y te avisaremos cuando alguien publique algo que coincida.
               </Text>
               <TouchableOpacity
                 style={styles.emptyAddBtn}
                 onPress={() => setShowAdd(true)}
                 activeOpacity={0.85}
               >
-                <Text style={styles.emptyAddBtnText}>+ Agregar búsqueda</Text>
+                <Ionicons name="add-circle-outline" size={18} color="#fff" style={{ marginRight: 6 }} />
+                <Text style={styles.emptyAddBtnText}>Agregar busqueda</Text>
               </TouchableOpacity>
             </View>
           }
@@ -350,35 +355,34 @@ export default function WishlistScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F5F7FA' },
+  safe: { flex: 1, backgroundColor: COLORS.bg },
   header: {
-    backgroundColor: BLUE,
+    backgroundColor: PRIMARY,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
-  headerBack: { width: 80 },
-  headerBackText: { color: 'rgba(255,255,255,0.9)', fontSize: 15 },
+  headerBack: { width: 44, height: 36, justifyContent: 'center' },
   headerTitle: { color: '#fff', fontSize: 16, fontWeight: '700' },
   addIconBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36, height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  addIconText: { color: '#fff', fontSize: 22, lineHeight: 24, fontWeight: '300' },
   infoBar: {
-    backgroundColor: '#E8EFF9',
+    backgroundColor: COLORS.primaryLight,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#D4E1F7',
+    borderBottomColor: COLORS.border,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  infoText: { fontSize: 12, color: '#3B5998', lineHeight: 17 },
+  infoText: { flex: 1, fontSize: 12, color: PRIMARY, lineHeight: 17 },
   listContent: { padding: 14, paddingBottom: 40 },
   card: {
     flexDirection: 'row',
@@ -388,44 +392,50 @@ const styles = StyleSheet.create({
     padding: 14,
     alignItems: 'center',
     gap: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    ...SHADOWS.small,
   },
   cardLeft: {
-    width: 36,
-    height: 36,
+    width: 36, height: 36,
     borderRadius: 18,
-    backgroundColor: '#E8EFF9',
+    backgroundColor: COLORS.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  cardIcon: { fontSize: 17 },
   cardBody: { flex: 1 },
   cardQuery: { fontSize: 15, fontWeight: '700', color: '#1A1A1A', marginBottom: 5 },
   cardMeta: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', alignItems: 'center' },
   catBadge: {
-    backgroundColor: '#E8EFF9',
+    backgroundColor: COLORS.primaryLight,
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
-  catBadgeText: { fontSize: 11, color: BLUE, fontWeight: '600' },
-  campusText: { fontSize: 11, color: '#666' },
+  catBadgeText: { fontSize: 11, color: PRIMARY, fontWeight: '600' },
+  campusBadge: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2,
+  },
+  campusText: { fontSize: 11, color: PRIMARY, fontWeight: '600' },
   anyText: { fontSize: 11, color: '#AAAAAA', fontStyle: 'italic' },
   deleteBtn: { padding: 4 },
-  deleteIcon: { fontSize: 18 },
   emptyBox: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 32 },
-  emptyEmoji: { fontSize: 52, marginBottom: 12 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#333', marginBottom: 8 },
+  emptyIconWrap: {
+    width: 100, height: 100, borderRadius: 50,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: 20,
+  },
+  emptyTitle: { fontSize: 18, fontWeight: '800', color: '#1E1B4B', marginBottom: 8 },
   emptySubtitle: { fontSize: 13, color: '#888', textAlign: 'center', lineHeight: 20, marginBottom: 24 },
   emptyAddBtn: {
-    backgroundColor: BLUE,
-    borderRadius: 10,
-    paddingVertical: 12,
+    backgroundColor: PRIMARY,
+    borderRadius: 14,
+    paddingVertical: 13,
     paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    ...SHADOWS.button,
   },
   emptyAddBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 });
