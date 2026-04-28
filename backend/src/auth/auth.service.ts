@@ -230,7 +230,8 @@ export class AuthService {
 
   /** URL pública del backend. Funciona en dev y producción automáticamente. */
   private get backendUrl(): string {
-    return (process.env.BACKEND_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000';
+    const url = process.env.BACKEND_URL ?? process.env.APP_URL ?? '';
+    return url.replace(/\/$/, '') || 'http://localhost:3000';
   }
 
   private async sendVerificationEmail(email: string, token: string) {
